@@ -1,4 +1,5 @@
 import pyglet
+import utils
 from main import *
 
 class RenderingEngine(pyglet.window.Window):
@@ -6,13 +7,7 @@ class RenderingEngine(pyglet.window.Window):
             super().__init__(caption="prototype window", width = 1280, height = 720,)
             self.window_center = (self.width // 2, self.height // 2)
 
-            background_image = pyglet.image.load("misc/blueprint-background_HD.png")
-            background_image.anchor_x = background_image.width // 2
-            background_image.anchor_y = background_image.height // 2
-
-            self.background_sprite = pyglet.sprite.Sprite(background_image, x=self.window_center[0], y=self.window_center[1],)
-            self.background_sprite.scale = 3
-
+            self.layer1 = []
             
 
             @self.event
@@ -59,3 +54,16 @@ class RenderingEngine(pyglet.window.Window):
 
         def show_coords(self):
             print(f"X,Y coords : {self.background_sprite.x},{self.background_sprite.y}")
+        
+        def render_layer(self,layer:list):
+            for elem in layer:
+                elem.draw()
+        
+        def add_to_layer(self,layer:int,object):
+            match layer:
+                case 1:
+                    self.layer1.append(object)
+                
+                case _ :
+                    print(f"{utils.Utils.console_prefix_error} layer {layer} does not exist.")
+            
