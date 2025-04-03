@@ -7,6 +7,8 @@ class Main:
         self.rendering_engine = rendering_engine.RenderingEngine(self)
         self.world = world.World(self)
         self.input_manager = InputManager(self)
+    
+    
 
 
 class InputManager:
