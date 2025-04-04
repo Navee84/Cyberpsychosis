@@ -42,49 +42,20 @@ class RenderingEngine(pyglet.window.Window):
                 parent.input_manager.input_add(symbol)
             
             @self.event
-            def update_inputs():
-                self.parent.input_manager.execute()
-            
-            @self.event
             def update():
                 pass
 
             @self.event
             def on_draw():
-                self.parent.send_to_render()
+
+                self.parent.prepare_to_render()
                 self.clear()
                 self.batch.draw()
-                #self.render_layer(self.layer1)
+                self.parent.input_manager.execute()
                 self.fps_display.draw() # ONLY FOR DEBUG AND DEVELOPMENT
 
 
         # METHODS
-        def render_layer(self,layer:Queue):
-            while not layer.is_empty():
-                elem = layer.dequeue()
-                elem.sprite.draw()
-
-
-        def add_to_layer(self,layer:int,object:world.WorldObject):
-            object.sprite.x, object.sprite.y = self.calculate_relative_window_position(object)
-            match layer:
-                case 1:
-                    self.layer1.enqueue(object)
-                
-                case _ :
-                    print(f"{utils.Utils.console_prefix_error} layer {layer} does not exist.")
-
-        def calculate_relative_window_position(self,object:world.WorldObject):
-            # extract verticies
-
-            window_center_x, window_center_y = self.window_center
-            object_x, object_y = object.world_coords
-
-            # calculate verticies
-            new_x = object_x + window_center_x
-            new_y = object_y + window_center_y
-
-            return (new_x,new_y)
 
 
 

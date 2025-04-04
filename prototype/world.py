@@ -1,35 +1,48 @@
-import pyglet
 import utils
 from main import *
 
 class World:
     def __init__(self,parent:Main):
         self.parent = parent
+        self.objects_list = []
         
         self.camera = Camera(self)
         self.environment = Environment(self,"misc/blueprint-background_HD.png")
-        self.debug_object = WorldObject(self, "misc/default_texture.png")
-        self.debug_object.world_coords = (350,150)
-        parent.rendering_engine.add_to_layer(1,self.environment)
-        parent.rendering_engine.add_to_layer(1,self.debug_object)
+        self.debug_object = DebugObject(self, "misc/default_texture.png")
+        self.debug_object.world_coords = [350,150]
 
 
-    def update_sprite_positions(self,object):
-        object.sprite.x, object.sprite.y = object.calculate_relative_position()
+    def update_sprites_positions(self): # object must be WorldObject type
+        for object in self.objects_list:
+            object.update_sprite_position()
+    
+    def add_to_batch(self,object): # object must be WorldObject type
+        object.sprite.batch = self.parent.rendering_engine.batch
+    
+    def remove_from_batch(self,object): # object must be WorldObject type
+        pass
+    def add_to_object_list(self,object):
+        self.objects_list.append(object)
+    
+    def update_camera_position(self):
+        self.camera.set_pos(self.debug_object.world_coords)
 
 
 class WorldObject:
     def __init__(self, parent:World, texture:str):
         self.parent = parent
         self.sprite = utils.Utils.sprite_load(texture)
-        self.world_coords = (0,0)
+        self.world_coords = [0,0]
         self.sprite.batch = parent.parent.rendering_engine.batch
 
-    def calculate_relative_position(self):
-        relative_x = self.world_coords[0] - self.parent.camera.pos[0] + self.parent.parent.rendering_engine.window_center[0]
-        relative_y = self.world_coords[1] - self.parent.camera.pos[1] + self.parent.parent.rendering_engine.window_center[1]
+        self.add_to_world_object_list()
 
-        return (relative_x,relative_y)
+    def update_sprite_position(self):
+        self.sprite.x = self.world_coords[0] - self.parent.camera.pos[0] + self.parent.parent.rendering_engine.window_center[0]
+        self.sprite.y = self.world_coords[1] - self.parent.camera.pos[1] + self.parent.parent.rendering_engine.window_center[1]
+    
+    def add_to_world_object_list(self):
+        self.parent.add_to_object_list(self)
 
 
 class Player(WorldObject):
@@ -44,8 +57,25 @@ class Environment(WorldObject):
 
 class Camera:
     def __init__(self, parent):
-        self.pos = (100,0)
+        self.pos = [0,0]
 
-    def set_pos(self,coords:tuple):
+    def set_pos(self,coords:list):
         self.pos = coords
 
+class DebugObject(WorldObject):
+    def __init__(self, parent, texture):
+        super().__init__(parent,texture)
+
+        self.speed = 4
+    
+    def go_up(self):
+        self.world_coords[1] += self.speed
+
+    def go_down(self):
+        self.world_coords[1] -= self.speed
+
+    def go_left(self):
+        self.world_coords[0] -= self.speed
+
+    def go_right(self):
+        self.world_coords[0] += self.speed
