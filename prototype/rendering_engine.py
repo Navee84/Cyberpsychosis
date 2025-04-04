@@ -31,6 +31,7 @@ class RenderingEngine(pyglet.window.Window):
             self.batch_layer_middleground = pyglet.graphics.Group(order=1)
             self.batch_layer_foreground = pyglet.graphics.Group(order=3)
 
+
             # GAME EVENTS
             @self.event
             def on_key_release(symbol, modifiers):
@@ -50,9 +51,10 @@ class RenderingEngine(pyglet.window.Window):
 
             @self.event
             def on_draw():
+                self.parent.send_to_render()
                 self.clear()
                 self.batch.draw()
-                self.render_layer(self.layer1)
+                #self.render_layer(self.layer1)
                 self.fps_display.draw() # ONLY FOR DEBUG AND DEVELOPMENT
 
 
@@ -64,7 +66,7 @@ class RenderingEngine(pyglet.window.Window):
 
 
         def add_to_layer(self,layer:int,object:world.WorldObject):
-            object.sprite.x, object.sprite.y = self.calculate_relative_camera_position(object)
+            object.sprite.x, object.sprite.y = self.calculate_relative_window_position(object)
             match layer:
                 case 1:
                     self.layer1.enqueue(object)
@@ -72,15 +74,15 @@ class RenderingEngine(pyglet.window.Window):
                 case _ :
                     print(f"{utils.Utils.console_prefix_error} layer {layer} does not exist.")
 
-        def calculate_relative_camera_position(self,object:world.WorldObject):
+        def calculate_relative_window_position(self,object:world.WorldObject):
             # extract verticies
-            camera_x, camera_y = self.camera.pos
+
             window_center_x, window_center_y = self.window_center
             object_x, object_y = object.world_coords
 
             # calculate verticies
-            new_x = object_x + window_center_x - camera_x
-            new_y = object_y + window_center_y - camera_y
+            new_x = object_x + window_center_x
+            new_y = object_y + window_center_y
 
             return (new_x,new_y)
 

@@ -19,4 +19,4 @@ if DEBUG :
     thread_console = threading.Thread(target=start_console, daemon=True)
     thread_console.start()
 
-pyglet.app.run(1/45)
+pyglet.app.run()

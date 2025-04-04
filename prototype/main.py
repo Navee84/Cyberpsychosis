@@ -1,12 +1,15 @@
 import pyglet
 
 
-
 class Main:
     def __init__(self):
         self.rendering_engine = rendering_engine.RenderingEngine(self)
         self.world = world.World(self)
         self.input_manager = InputManager(self)
+    
+    def send_to_render(self):
+        #self.world.update_sprite_positions()
+        pass
     
     
 
