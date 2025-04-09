@@ -12,6 +12,10 @@ class Utils:
         image.anchor_y = image.height // 2
         return pyglet.sprite.Sprite(image)
     
-
+    def create_line(starting_point:tuple, ending_point:tuple):
+        return pyglet.shapes.Line(starting_point[0], starting_point[1],
+                                  ending_point[0], ending_point[1],
+                                  thickness= 7, color=(75,75,255)
+                                  )
 
 
