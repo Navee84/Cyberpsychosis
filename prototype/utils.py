@@ -12,10 +12,35 @@ class Utils:
         image.anchor_y = image.height // 2
         return pyglet.sprite.Sprite(image)
     
-    def create_line(starting_point:tuple, ending_point:tuple):
+    def create_line(starting_point:tuple, ending_point:tuple, color):
         return pyglet.shapes.Line(starting_point[0], starting_point[1],
                                   ending_point[0], ending_point[1],
-                                  thickness= 7, color=(75,75,255)
+                                  thickness= 5, color = color
                                   )
+    def get_min(lst):
+        min = lst[0]
+        for elem in lst:
+            if elem < min:
+                min = elem
+        return min
+    
+    def get_max(lst):
+        max = lst[0]
+        for elem in lst:
+            if elem > max:
+                max = elem
+        return max
 
-
+class Queue:
+    def __init__(self):
+        self.queue = []
+    
+    def is_empty(self):
+        return self.queue == []
+    
+    def enqueue(self,object):
+        self.queue.append(object)
+    
+    def dequeue(self):
+        if not self.is_empty():
+            return self.queue.pop(0)

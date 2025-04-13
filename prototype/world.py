@@ -6,6 +6,7 @@ class World:
         self.parent = parent
         self.objects_list = []
         
+        self.physics_engine = PhysicsEngine()
         self.camera = Camera(self)
         self.environment = Environment(self,"prototype/assets/images/textures/blueprint-background_HD.png", 0)
 
@@ -15,9 +16,17 @@ class World:
         self.alpha_player.world_coords = [350,150]
 
         self.debug_object = DebugObject(self, "misc/default_texture.png", 1)
-        self.debug_object.hitbox = Hitbox(self.debug_object, "rectangle", (150,150))
+        self.debug_object.hitbox = Hitbox(self.debug_object, "triangle", (150,20))
         self.debug_object.hitbox.render = True
         self.debug_object.world_coords = [-350,-150]
+
+    def check_colision(self): # DEBUG FUNCTION, DO NOT USE FOR FINAL PROGRAM
+        if self.physics_engine.is_colliding(self.alpha_player.hitbox,self.debug_object.hitbox):
+            self.alpha_player.hitbox.is_colliding = True
+            self.debug_object.hitbox.is_colliding = True
+        else:
+            self.alpha_player.hitbox.is_colliding = False
+            self.debug_object.hitbox.is_colliding = False
         
 
 
@@ -47,7 +56,7 @@ class WorldObject:
         self.sprite = utils.Utils.sprite_load(texture)
         self.world_coords = [0,0]
         self.orientation = 0 # 0 means facing right
-        self.fov = 1
+        self.fov = 1.6
         self.hitbox = None
 
         # Render related initialisation
@@ -81,24 +90,35 @@ class WorldObject:
             case _:
                 return None
 
+class Entity:
+    def __init__(self):
+        self.acceleration = None
+        self.max_speed = None
+        self.vertical_speed = None
+        self.horizontal_speed = None
+    
 
-class Player(WorldObject):
+class Player(WorldObject,Entity):
     def __init__(self, parent, texture:str, group:int):
         super().__init__(parent, texture, group)
 
-        self.speed = 4
+        # movement values:
+        self.acceleration = 4
+        self.max_speed = 5
+        self.vertical_speed = 0
+        self.horizontal_speed = 0
     
-    def go_up(self):
-        self.world_coords[1] += self.speed
+    def move_up(self):
+        self.world_coords[1] += self.acceleration
 
-    def go_down(self):
-        self.world_coords[1] -= self.speed
+    def move_down(self):
+        self.world_coords[1] -= self.acceleration
 
-    def go_left(self):
-        self.world_coords[0] -= self.speed
+    def move_left(self):
+        self.world_coords[0] -= self.acceleration   
 
-    def go_right(self):
-        self.world_coords[0] += self.speed
+    def move_right(self):
+        self.world_coords[0] += self.acceleration
 
 
 
@@ -126,11 +146,12 @@ class Hitbox:
 
         allowed_presets = ("rectangle","triangle","circle","hexagon")
         if not preset in allowed_presets:
-            raise TypeError(f"preset '{preset}' is not a valid preset")
+            raise TypeError(f"{utils.Utils.console_prefix_error} preset '{preset}' is not a valid preset")
         
         self.dimensions = dimensions
         self.preset = preset
         self.render = True
+        self.is_colliding = False
 
         self.size = 1
         self.hitbox_coordinates = None # Coordinates always go from top left in clockwise order
@@ -139,21 +160,27 @@ class Hitbox:
         self.update()
 
     def update(self):
+        color = (75,100,255)
+        if self.is_colliding:
+            color = (255,100,75)
+
         match self.preset:
             case "rectangle":
                 self.hitbox_coordinates = self.preset_rectangle(self.dimensions[0], self.dimensions[1])
 
             case "triangle":
-                self.hitbox_coordinates = self.preset_triangle(self.dimensions[0],self.dimensions[1])
+                self.hitbox_coordinates = self.preset_triangle(self.dimensions[0], self.dimensions[1])
         
         if self.render:
             for i in range(len(self.hitbox_coordinates)-1):
                 self.parent.parent.parent.rendering_engine.debug_render_queue.enqueue(utils.Utils.create_line((self.hitbox_coordinates[i][0]*self.parent.fov - self.parent.parent.camera.pos[0]*self.parent.fov + self.parent.parent.parent.rendering_engine.window_center[0] , self.hitbox_coordinates[i][1]*self.parent.fov - self.parent.parent.camera.pos[1]*self.parent.fov + self.parent.parent.parent.rendering_engine.window_center[1]),
-                                                                                                               (self.hitbox_coordinates[i+1][0]*self.parent.fov - self.parent.parent.camera.pos[0]*self.parent.fov + self.parent.parent.parent.rendering_engine.window_center[0] , self.hitbox_coordinates[i+1][1]*self.parent.fov - self.parent.parent.camera.pos[1]*self.parent.fov + self.parent.parent.parent.rendering_engine.window_center[1])
+                                                                                                               (self.hitbox_coordinates[i+1][0]*self.parent.fov - self.parent.parent.camera.pos[0]*self.parent.fov + self.parent.parent.parent.rendering_engine.window_center[0] , self.hitbox_coordinates[i+1][1]*self.parent.fov - self.parent.parent.camera.pos[1]*self.parent.fov + self.parent.parent.parent.rendering_engine.window_center[1]),
+                                                                                                               color
                                                                                                                ))
 
             self.parent.parent.parent.rendering_engine.debug_render_queue.enqueue(utils.Utils.create_line((self.hitbox_coordinates[-1][0]*self.parent.fov - self.parent.parent.camera.pos[0]*self.parent.fov + self.parent.parent.parent.rendering_engine.window_center[0] , self.hitbox_coordinates[-1][1]*self.parent.fov - self.parent.parent.camera.pos[1]*self.parent.fov + self.parent.parent.parent.rendering_engine.window_center[1]),
-                                                                                                            (self.hitbox_coordinates[0][0]*self.parent.fov - self.parent.parent.camera.pos[0]*self.parent.fov + self.parent.parent.parent.rendering_engine.window_center[0] , self.hitbox_coordinates[0][1]*self.parent.fov - self.parent.parent.camera.pos[1]*self.parent.fov + self.parent.parent.parent.rendering_engine.window_center[1])
+                                                                                                            (self.hitbox_coordinates[0][0]*self.parent.fov - self.parent.parent.camera.pos[0]*self.parent.fov + self.parent.parent.parent.rendering_engine.window_center[0] , self.hitbox_coordinates[0][1]*self.parent.fov - self.parent.parent.camera.pos[1]*self.parent.fov + self.parent.parent.parent.rendering_engine.window_center[1]),
+                                                                                                            color
                                                                                                             ))
     def preset_rectangle(self,height, width):
         top_left = (self.parent.world_coords[0] - width//2 , self.parent.world_coords[1] + height//2)
@@ -161,19 +188,92 @@ class Hitbox:
 
         bottom_left = (self.parent.world_coords[0] - width//2 , self.parent.world_coords[1] - height//2)
         bottom_right = (self.parent.world_coords[0] + width//2, self.parent.world_coords[1] - height//2)
+
         return [top_left,top_right,bottom_right,bottom_left]
     
-    def preset_triangle(self):
-        pass
+    def preset_triangle(self, width, down_offset):
+        top = (self.parent.world_coords[0], self.parent.world_coords[1] + int((2/3)*((3**0.5)*(width//2))) - down_offset)
+
+        bottom_middle = (self.parent.world_coords[0],self.parent.world_coords[1] - int((1/3)*((3**0.5)*(width//2))) - down_offset)
+        bottom_left = (bottom_middle[0] - width//2, bottom_middle[1])
+        bottom_right = (bottom_middle[0] + width//2, bottom_middle[1])
+
+        return [top, bottom_right, bottom_left]
 
     def preset_circle(self):
         pass
     
     def preset_hexagon(self):
         pass
+
+    def dump(self):
+        print(f"Preset : {self.preset}")
+        print(f"Coords : {self.hitbox_coordinates}")
+
     
 
 
 
 class PhysicsEngine:
-    pass
+    def update_position(self,object:Entity) -> list:
+        '''
+        Input : an entity object
+        Calculate new posistion in the word using object's defined acceleration, current horizontal and vertical speed, maximum speed
+        Output : a list of x and y coordinates -> [x,y]
+        '''
+        pass
+
+    def is_colliding(self,hitbox1:Hitbox,hitbox2:Hitbox) -> bool:
+        '''
+        Returns True if the hitboxes overlap, False if the hitboxes are not touching
+        '''
+        normals = []
+        for i in range(len(hitbox1.hitbox_coordinates)-1):
+            normals.append(self.get_normals(hitbox1.hitbox_coordinates[i],hitbox1.hitbox_coordinates[i+1]))
+        normals.append(self.get_normals(hitbox1.hitbox_coordinates[-1],hitbox1.hitbox_coordinates[0]))
+
+        for i in range(len(hitbox2.hitbox_coordinates)-1):
+            normals.append(self.get_normals(hitbox2.hitbox_coordinates[i],hitbox2.hitbox_coordinates[i+1]))
+        normals.append(self.get_normals(hitbox2.hitbox_coordinates[-1],hitbox2.hitbox_coordinates[0]))
+
+        for normal in normals:
+            k1_values = []
+            for point in hitbox1.hitbox_coordinates:
+                k1_values.append(self.get_scalar_coefficient(normal,point))
+
+            k2_values = []
+            for point in hitbox2.hitbox_coordinates:
+                k2_values.append(self.get_scalar_coefficient(normal,point))
+
+            if not self.is_overlapping(k1_values,k2_values):
+                return False
+
+        return True
+
+            
+    def is_overlapping(self, list1, list2) -> bool:
+        k1_max = utils.Utils.get_max(list1)
+        k1_min = utils.Utils.get_min(list1)
+        k2_max = utils.Utils.get_max(list2)
+        k2_min = utils.Utils.get_min(list2)
+
+        if k1_max - k2_min <= 0:
+            return False
+
+        if k2_max - k1_min <= 0:
+            return False
+        
+        return True
+
+
+
+
+    def get_normals(self, point_a:tuple, point_b:tuple)-> tuple:
+        # simple formule de vecteur normal
+        return (-1*(point_b[1]-point_a[1]), point_b[0]-point_a[0])
+        
+    
+    def get_scalar_coefficient(self, vector:tuple, point:tuple):
+        k = (vector[0]*point[0] + vector[1]*point[1]) / (vector[0]**2 + vector[1]**2)
+        rounded = round(k,3)
+        return rounded

@@ -3,20 +3,6 @@ import utils
 import world
 from main import *
 
-class Queue:
-    def __init__(self):
-        self.queue = []
-    
-    def is_empty(self):
-        return self.queue == []
-    
-    def enqueue(self,object):
-        self.queue.append(object)
-    
-    def dequeue(self):
-        if not self.is_empty():
-            return self.queue.pop(0)
-
 
 class RenderingEngine(pyglet.window.Window):
     def __init__(self, parent:Main):
@@ -37,7 +23,7 @@ class RenderingEngine(pyglet.window.Window):
         self.batch_layer_foreground = pyglet.graphics.Group(order=2)
         self.batch_layer_ui = pyglet.graphics.Group(order=3)
 
-        self.debug_render_queue = Queue()
+        self.debug_render_queue = utils.Queue()
 
 
         # GAME EVENTS
@@ -48,16 +34,12 @@ class RenderingEngine(pyglet.window.Window):
         @self.event
         def on_key_press(symbol, modifiers):
             parent.input_manager.input_add(symbol)
-        
-        @self.event
-        def update():
-            pass
 
         @self.event
         def on_draw():
-
-            self.clear()
+            
             self.parent.prepare_to_render()
+            self.clear()
             self.batch.draw()
             self.render_debug(self.debug_render_queue)
             self.parent.input_manager.execute()
@@ -66,7 +48,7 @@ class RenderingEngine(pyglet.window.Window):
 
     # METHODS
 
-    def render_debug(self,queue:Queue):
+    def render_debug(self,queue:utils.Queue):
         while not queue.is_empty():
             queue.dequeue().draw()
 
