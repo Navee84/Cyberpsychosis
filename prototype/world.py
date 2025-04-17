@@ -6,9 +6,10 @@ class World:
         self.parent = parent
         self.objects_list = []
         
-        self.physics_engine = PhysicsEngine()
+        self.physics_engine = PhysicsEngine(self)
         self.camera = Camera(self)
         self.environment = Environment(self,"prototype/assets/images/textures/blueprint-background_HD.png", 0)
+        self.environment.fixed = True
 
         self.alpha_player = Player(self, "misc/default_texture.png", 1)
         self.alpha_player.hitbox = Hitbox(self.alpha_player, "rectangle", (100,100))
@@ -19,6 +20,13 @@ class World:
         self.debug_object.hitbox = Hitbox(self.debug_object, "triangle", (150,20))
         self.debug_object.hitbox.render = True
         self.debug_object.world_coords = [-350,-150]
+        self.debug_object.fixed = True
+
+        self.debug_object2 = DebugObject(self, "misc/default_texture.png", 1)
+        self.debug_object2.hitbox = Hitbox(self.debug_object2, "rectangle", (100,150))
+        self.debug_object2.hitbox.render = True
+        self.debug_object2.world_coords = [260,-190]
+        self.debug_object.fixed = True
 
     def check_colision(self): # DEBUG FUNCTION, DO NOT USE FOR FINAL PROGRAM
         if self.physics_engine.is_colliding(self.alpha_player.hitbox,self.debug_object.hitbox):
@@ -27,12 +35,12 @@ class World:
         else:
             self.alpha_player.hitbox.is_colliding = False
             self.debug_object.hitbox.is_colliding = False
-        
+
 
 
     def update_objects_positions(self): # object must be WorldObject type
         for object in self.objects_list:
-            object.update_hitbox_position()
+            object.apply_physics()
             object.update_sprite_position()
     
     def add_to_batch(self,object): # object must be WorldObject type
@@ -56,13 +64,26 @@ class WorldObject:
         self.sprite = utils.Utils.sprite_load(texture)
         self.world_coords = [0,0]
         self.orientation = 0 # 0 means facing right
-        self.fov = 1.6
+        self.fov = 1
         self.hitbox = None
+        self.fixed = False
+
+        # Movement values
+        self.acceleration = 0
+        self.max_speed = 0
+        self.friction = 0.8 # Keep this value between 0 and 1 : 1 is no friction and 0 is maximum friction 
+
+        self.speed = [0,0]
+
 
         # Render related initialisation
         self.sprite.batch = parent.parent.rendering_engine.batch
         self.sprite.group = self.get_correct_batch_group(group)
         self.add_to_world_object_list()
+
+    def apply_physics(self):
+        self.parent.physics_engine.update_position(self)
+        self.update_hitbox_position()
 
     def update_sprite_position(self):
         self.sprite.scale = self.fov
@@ -72,6 +93,7 @@ class WorldObject:
     def update_hitbox_position(self):
         if not self.hitbox == None:
             self.hitbox.update()
+    
 
 
     def add_to_world_object_list(self):
@@ -90,36 +112,38 @@ class WorldObject:
             case _:
                 return None
 
-class Entity:
-    def __init__(self):
-        self.acceleration = None
-        self.max_speed = None
-        self.vertical_speed = None
-        self.horizontal_speed = None
-    
 
-class Player(WorldObject,Entity):
+class Player(WorldObject):
     def __init__(self, parent, texture:str, group:int):
         super().__init__(parent, texture, group)
 
         # movement values:
-        self.acceleration = 4
-        self.max_speed = 5
-        self.vertical_speed = 0
-        self.horizontal_speed = 0
+        self.acceleration = 2
+        self.max_speed = 6
     
     def move_up(self):
-        self.world_coords[1] += self.acceleration
+        self.speed[1] = round(min(self.max_speed,self.speed[1]+self.acceleration),2)
 
     def move_down(self):
-        self.world_coords[1] -= self.acceleration
+        self.speed[1] = round(max(-self.max_speed,self.speed[1]-self.acceleration),2)
 
     def move_left(self):
-        self.world_coords[0] -= self.acceleration   
+        self.speed[0] = round(max(-self.max_speed,self.speed[0]-self.acceleration),2)
 
     def move_right(self):
-        self.world_coords[0] += self.acceleration
+        self.speed[0] = round(min(self.max_speed,self.speed[0]+self.acceleration),2)
 
+    def render_values(self):
+        coords_label = pyglet.text.Label("Coords : "+str(self.world_coords),
+                          font_size=18,
+                          x=10, y=690)
+        
+        speed_label = pyglet.text.Label("Speed : "+str(self.speed),
+                          font_size=18,
+                          x=10, y=660)
+
+        self.parent.parent.rendering_engine.debug_render_queue.enqueue(coords_label)
+        self.parent.parent.rendering_engine.debug_render_queue.enqueue(speed_label)
 
 
 class Environment(WorldObject): # UNIQUE OBJECT, DEFiNE THE BACKGROUND ENVIRONMENT
@@ -144,6 +168,7 @@ class Hitbox:
     def __init__(self, parent:WorldObject, preset:str, dimensions:tuple):
         self.parent = parent
 
+        # Vérifie que le preset entré en argument est dans la liste des presets disponibles
         allowed_presets = ("rectangle","triangle","circle","hexagon")
         if not preset in allowed_presets:
             raise TypeError(f"{utils.Utils.console_prefix_error} preset '{preset}' is not a valid preset")
@@ -215,13 +240,50 @@ class Hitbox:
 
 
 class PhysicsEngine:
-    def update_position(self,object:Entity) -> list:
+    def __init__(self, parent:World):
+        self.parent = parent
+
+    def update_position(self,active_object:WorldObject) -> None:
         '''
         Input : an entity object
         Calculate new posistion in the word using object's defined acceleration, current horizontal and vertical speed, maximum speed
-        Output : a list of x and y coordinates -> [x,y]
+        Output : same object but with modified world_pos values
         '''
-        pass
+        if active_object.fixed == True:
+            return None
+
+        candidate_queue = utils.Queue()
+        old_object_position = active_object.world_coords
+
+        # prevent stucking speed at low values
+        for i in range(2):
+            if (active_object.speed[i]**2)**(1/2) < (0.1):
+                active_object.speed[i] = 0
+
+
+        active_object.speed[0] = round(active_object.speed[0] * active_object.friction,2)
+        active_object.speed[1] = round(active_object.speed[1] * active_object.friction,2)
+
+        active_object.world_coords[0] = round(active_object.world_coords[0]+active_object.speed[0])
+        active_object.world_coords[1] = round(active_object.world_coords[1]+active_object.speed[1])
+
+
+        for object in self.parent.objects_list:
+            if object.hitbox != None:
+                if object != active_object:
+                    if max(object.hitbox.dimensions[0], object.hitbox.dimensions[1])*1.5 > utils.Utils.distance(active_object.world_coords,object.world_coords):
+                        candidate_queue.enqueue(object)
+
+        while not candidate_queue.is_empty():
+            tested_object = candidate_queue.dequeue()
+            if self.is_colliding(active_object.hitbox,tested_object.hitbox):
+                active_object.hitbox.is_colliding = True
+                tested_object.hitbox.is_colliding = True
+            else:
+                active_object.hitbox.is_colliding = False
+                tested_object.hitbox.is_colliding = False
+
+
 
     def is_colliding(self,hitbox1:Hitbox,hitbox2:Hitbox) -> bool:
         '''
@@ -248,6 +310,11 @@ class PhysicsEngine:
             if not self.is_overlapping(k1_values,k2_values):
                 return False
 
+        collision_label = pyglet.text.Label("Colliding : "+str(hitbox1)+" and "+str(hitbox2),
+                font_size=18,
+                x=10, y=620)
+
+        self.parent.parent.rendering_engine.debug_render_queue.enqueue(collision_label)
         return True
 
             

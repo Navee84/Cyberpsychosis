@@ -30,6 +30,9 @@ class Utils:
             if elem > max:
                 max = elem
         return max
+    
+    def distance(point_a:list,point_b:list):
+        return ((point_a[0]-point_b[0])**2+(point_a[1]-point_b[1])**2)**(1/2)
 
 class Queue:
     def __init__(self):

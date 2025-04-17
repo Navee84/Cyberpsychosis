@@ -9,8 +9,8 @@ class Main:
     
     def prepare_to_render(self):
         self.world.update_objects_positions()
-        self.world.check_colision()
         self.world.update_camera_position()
+        self.world.alpha_player.render_values()
     
     
 
@@ -22,7 +22,6 @@ class InputManager:
                                pyglet.window.key.S: parent.world.alpha_player.move_down,
                                pyglet.window.key.Q: parent.world.alpha_player.move_left,
                                pyglet.window.key.D: parent.world.alpha_player.move_right,
-                               pyglet.window.key.SPACE: parent.world.check_colision
                                }
         self.input_list = []
 
