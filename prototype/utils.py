@@ -1,4 +1,5 @@
 import pyglet
+from math import cos, sin, atan, degrees, radians
 
 class Utils:
     def __init__(self):
@@ -33,6 +34,20 @@ class Utils:
     
     def distance(point_a:list,point_b:list):
         return ((point_a[0]-point_b[0])**2+(point_a[1]-point_b[1])**2)**(1/2)
+    
+    def apply_rotation(origin:tuple,point:tuple,theta) -> tuple:
+        origin_vector = origin
+        normalized_point = (point[0]-origin_vector[0],point[1]-origin_vector[1])
+
+        rotated_point = (normalized_point[0]*cos(theta) - normalized_point[1]*sin(theta), normalized_point[1]*cos(theta) + normalized_point[0]*sin(theta))
+
+        final_point = (rotated_point[0]+origin_vector[0], rotated_point[1]+origin_vector[1])
+        return final_point
+    
+    def get_angle(point_a, point_b):
+        angle = atan((point_b[1]-point_a[1])/(point_b[0]-point_a[0]+0.01))
+        return angle
+
 
 class Queue:
     def __init__(self):

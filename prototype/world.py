@@ -1,6 +1,7 @@
 import utils
 from main import *
 
+
 class World:
     def __init__(self,parent:Main):
         self.parent = parent
@@ -85,15 +86,18 @@ class WorldObject:
         self.parent.physics_engine.update_position(self)
         self.update_hitbox_position()
 
+    def get_screen_pos(self):
+        return (self.world_coords[0]*self.fov - self.parent.camera.pos[0]*self.fov + self.parent.parent.rendering_engine.window_center[0], self.world_coords[1]*self.fov - self.parent.camera.pos[1]*self.fov + self.parent.parent.rendering_engine.window_center[1])
     def update_sprite_position(self):
         self.sprite.scale = self.fov
-        self.sprite.x = self.world_coords[0]*self.fov - self.parent.camera.pos[0]*self.fov + self.parent.parent.rendering_engine.window_center[0]
-        self.sprite.y = self.world_coords[1]*self.fov - self.parent.camera.pos[1]*self.fov + self.parent.parent.rendering_engine.window_center[1]
+        screen_pos = self.get_screen_pos()
+        self.sprite.x = screen_pos[0]
+        self.sprite.y = screen_pos[1]
     
     def update_hitbox_position(self):
         if not self.hitbox == None:
             self.hitbox.update()
-    
+
 
 
     def add_to_world_object_list(self):
@@ -133,6 +137,10 @@ class Player(WorldObject):
     def move_right(self):
         self.speed[0] = round(min(self.max_speed,self.speed[0]+self.acceleration),2)
 
+    def face_mouse(self):
+        angle = utils.Utils.get_angle((self.parent.parent.rendering_engine._mouse_x,self.parent.parent.rendering_engine._mouse_y),self.get_screen_pos())
+        self.orientation = angle
+
     def render_values(self):
         coords_label = pyglet.text.Label("Coords : "+str(self.world_coords),
                           font_size=18,
@@ -142,8 +150,13 @@ class Player(WorldObject):
                           font_size=18,
                           x=10, y=660)
 
+        mouse_pos_label = pyglet.text.Label("Mousepos : "+str((self.parent.parent.rendering_engine._mouse_x,self.parent.parent.rendering_engine._mouse_y)),
+                          font_size=18,
+                          x=240, y=690)
+
         self.parent.parent.rendering_engine.debug_render_queue.enqueue(coords_label)
         self.parent.parent.rendering_engine.debug_render_queue.enqueue(speed_label)
+        self.parent.parent.rendering_engine.debug_render_queue.enqueue(mouse_pos_label)
 
 
 class Environment(WorldObject): # UNIQUE OBJECT, DEFiNE THE BACKGROUND ENVIRONMENT
@@ -214,7 +227,13 @@ class Hitbox:
         bottom_left = (self.parent.world_coords[0] - width//2 , self.parent.world_coords[1] - height//2)
         bottom_right = (self.parent.world_coords[0] + width//2, self.parent.world_coords[1] - height//2)
 
-        return [top_left,top_right,bottom_right,bottom_left]
+        point_list = [top_left, top_right,bottom_right, bottom_left]
+
+        rotated_list = []
+        for point in point_list:
+            rotated_list.append(utils.Utils.apply_rotation(self.parent.world_coords,point,self.parent.orientation))
+
+        return rotated_list
     
     def preset_triangle(self, width, down_offset):
         top = (self.parent.world_coords[0], self.parent.world_coords[1] + int((2/3)*((3**0.5)*(width//2))) - down_offset)
@@ -223,7 +242,13 @@ class Hitbox:
         bottom_left = (bottom_middle[0] - width//2, bottom_middle[1])
         bottom_right = (bottom_middle[0] + width//2, bottom_middle[1])
 
-        return [top, bottom_right, bottom_left]
+        point_list = [top,bottom_right, bottom_left]
+
+        rotated_list = []
+        for point in point_list:
+            rotated_list.append(utils.Utils.apply_rotation(self.parent.world_coords,point,self.parent.orientation))
+
+        return rotated_list
 
     def preset_circle(self):
         pass
@@ -234,6 +259,7 @@ class Hitbox:
     def dump(self):
         print(f"Preset : {self.preset}")
         print(f"Coords : {self.hitbox_coordinates}")
+        print(f"Rotation : {self.parent.orientation}")
 
     
 

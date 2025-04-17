@@ -18,11 +18,11 @@ class Main:
 class InputManager:
     def __init__(self, parent:Main):
         super().__init__()
+        self.parent = parent
         self.input_commands = {pyglet.window.key.Z: parent.world.alpha_player.move_up,
                                pyglet.window.key.S: parent.world.alpha_player.move_down,
                                pyglet.window.key.Q: parent.world.alpha_player.move_left,
-                               pyglet.window.key.D: parent.world.alpha_player.move_right,
-                               }
+                               pyglet.window.key.D: parent.world.alpha_player.move_right                               }
         self.input_list = []
 
     def input_add(self,input):
@@ -35,7 +35,7 @@ class InputManager:
         for input in self.input_list:
             if input in self.input_commands.keys():
                 self.input_commands[input]()
-        pass
+        self.parent.world.alpha_player.face_mouse()
 
 # scripts
 import rendering_engine
