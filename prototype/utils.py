@@ -45,8 +45,25 @@ class Utils:
         return final_point
     
     def get_angle(point_a, point_b):
-        angle = atan((point_b[1]-point_a[1])/(point_b[0]-point_a[0]+0.01))
+        angle = atan((point_b[1]-point_a[1])/(point_b[0]-point_a[0]+0.01)) # +0.01 is here to prevent divisons by 0
         return angle
+    
+    def get_vector(point_a:tuple, point_b:tuple) -> tuple:
+        # return the vector from point a to point b
+        x = point_b[0] - point_a[0]
+        y = point_b[1] - point_a [1]
+
+        return (x,y)
+
+    def translate(point: tuple | list, vector:tuple) -> tuple | list:
+        # return the modified point values
+        transtated_x = point[0] + vector[0]
+        transtated_y = point[1] + vector[1]
+
+        if type(point) == tuple:
+            return (transtated_x, transtated_y)
+        return [transtated_x, transtated_y]
+    
 
 
 class Queue:

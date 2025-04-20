@@ -17,27 +17,20 @@ class World:
         self.alpha_player.hitbox.render = True
         self.alpha_player.world_coords = [350,150]
 
-        self.debug_object = DebugObject(self, "misc/default_texture.png", 1)
+        self.debug_object = DebugObject(self, "misc/default_texture.png", 1, True)
         self.debug_object.hitbox = Hitbox(self.debug_object, "triangle", (150,20))
         self.debug_object.hitbox.render = True
         self.debug_object.world_coords = [-350,-150]
-        self.debug_object.fixed = True
 
-        self.debug_object2 = DebugObject(self, "misc/default_texture.png", 1)
+        self.debug_object2 = DebugObject(self, "misc/default_texture.png", 1, False)
         self.debug_object2.hitbox = Hitbox(self.debug_object2, "rectangle", (100,150))
         self.debug_object2.hitbox.render = True
         self.debug_object2.world_coords = [260,-190]
-        self.debug_object.fixed = True
 
-    def check_colision(self): # DEBUG FUNCTION, DO NOT USE FOR FINAL PROGRAM
-        if self.physics_engine.is_colliding(self.alpha_player.hitbox,self.debug_object.hitbox):
-            self.alpha_player.hitbox.is_colliding = True
-            self.debug_object.hitbox.is_colliding = True
-        else:
-            self.alpha_player.hitbox.is_colliding = False
-            self.debug_object.hitbox.is_colliding = False
-
-
+        self.debug_object3 = DebugObject(self, "misc/default_texture.png", 1, False)
+        self.debug_object3.hitbox = Hitbox(self.debug_object3, "triangle", (170,20))
+        self.debug_object3.hitbox.render = True
+        self.debug_object3.world_coords = [-50,140]
 
     def update_objects_positions(self): # object must be WorldObject type
         for object in self.objects_list:
@@ -54,27 +47,32 @@ class World:
         self.objects_list.append(object)
     
     def update_camera_position(self):
+        # Change this to change the camera focus
         self.camera.set_pos(self.alpha_player.world_coords)
 
 
 class WorldObject:
-    def __init__(self, parent:World, texture:str, group:int):
+    def __init__(self, parent:World, texture:str, group:int, fixation:bool):
         self.parent = parent
+        self.fixed = fixation
 
         # Defining all default values for a WorldObject
         self.sprite = utils.Utils.sprite_load(texture)
-        self.world_coords = [0,0]
         self.orientation = 0 # 0 means facing right
         self.fov = 1
         self.hitbox = None
-        self.fixed = False
 
         # Movement values
         self.acceleration = 0
         self.max_speed = 0
         self.friction = 0.8 # Keep this value between 0 and 1 : 1 is no friction and 0 is maximum friction 
 
+        self.world_coords = [0,0]
         self.speed = [0,0]
+
+        if self.fixed:
+            self.world_coords = (0,0)
+            self.speed = (0,0)
 
 
         # Render related initialisation
@@ -88,8 +86,10 @@ class WorldObject:
 
     def get_screen_pos(self):
         return (self.world_coords[0]*self.fov - self.parent.camera.pos[0]*self.fov + self.parent.parent.rendering_engine.window_center[0], self.world_coords[1]*self.fov - self.parent.camera.pos[1]*self.fov + self.parent.parent.rendering_engine.window_center[1])
+
     def update_sprite_position(self):
         self.sprite.scale = self.fov
+        self.sprite.rotation = utils.degrees(-self.orientation)
         screen_pos = self.get_screen_pos()
         self.sprite.x = screen_pos[0]
         self.sprite.y = screen_pos[1]
@@ -119,7 +119,7 @@ class WorldObject:
 
 class Player(WorldObject):
     def __init__(self, parent, texture:str, group:int):
-        super().__init__(parent, texture, group)
+        super().__init__(parent, texture, group, False)
 
         # movement values:
         self.acceleration = 2
@@ -150,18 +150,23 @@ class Player(WorldObject):
                           font_size=18,
                           x=10, y=660)
 
+        orientation_label = pyglet.text.Label("Orientation : "+str(self.orientation),
+                          font_size=18,
+                          x=10, y=620)
+
         mouse_pos_label = pyglet.text.Label("Mousepos : "+str((self.parent.parent.rendering_engine._mouse_x,self.parent.parent.rendering_engine._mouse_y)),
                           font_size=18,
                           x=240, y=690)
 
         self.parent.parent.rendering_engine.debug_render_queue.enqueue(coords_label)
         self.parent.parent.rendering_engine.debug_render_queue.enqueue(speed_label)
+        self.parent.parent.rendering_engine.debug_render_queue.enqueue(orientation_label)
         self.parent.parent.rendering_engine.debug_render_queue.enqueue(mouse_pos_label)
 
 
 class Environment(WorldObject): # UNIQUE OBJECT, DEFiNE THE BACKGROUND ENVIRONMENT
     def __init__(self, parent, texture:str, group:int):
-        super().__init__(parent, texture, group)
+        super().__init__(parent, texture, group, True)
 
 
 class Camera:
@@ -172,8 +177,8 @@ class Camera:
         self.pos = coords
 
 class DebugObject(WorldObject):
-    def __init__(self, parent, texture:str, group:int):
-        super().__init__(parent, texture, group)
+    def __init__(self, parent, texture:str, group:int, fixation:bool):
+        super().__init__(parent, texture, group, fixation)
 
 
 
@@ -275,11 +280,12 @@ class PhysicsEngine:
         Calculate new posistion in the word using object's defined acceleration, current horizontal and vertical speed, maximum speed
         Output : same object but with modified world_pos values
         '''
-        if active_object.fixed == True:
+        # UPDATING POSITIONS
+
+        if active_object.fixed:
             return None
 
         candidate_queue = utils.Queue()
-        old_object_position = active_object.world_coords
 
         # prevent stucking speed at low values
         for i in range(2):
@@ -293,6 +299,7 @@ class PhysicsEngine:
         active_object.world_coords[0] = round(active_object.world_coords[0]+active_object.speed[0])
         active_object.world_coords[1] = round(active_object.world_coords[1]+active_object.speed[1])
 
+        # CHECKING COLLISION
 
         for object in self.parent.objects_list:
             if object.hitbox != None:
@@ -302,16 +309,26 @@ class PhysicsEngine:
 
         while not candidate_queue.is_empty():
             tested_object = candidate_queue.dequeue()
-            if self.is_colliding(active_object.hitbox,tested_object.hitbox):
+
+        # RESOLVING COLLISION
+            collision_result = self.is_colliding(active_object.hitbox,tested_object.hitbox)
+            if collision_result[0]:
                 active_object.hitbox.is_colliding = True
                 tested_object.hitbox.is_colliding = True
+    
+                if active_object.fixed == False:
+                    active_object.world_coords = (utils.Utils.translate(active_object.world_coords, collision_result[1]))
+
+
             else:
                 active_object.hitbox.is_colliding = False
                 tested_object.hitbox.is_colliding = False
+        
 
 
 
-    def is_colliding(self,hitbox1:Hitbox,hitbox2:Hitbox) -> bool:
+
+    def is_colliding(self,hitbox1:Hitbox,hitbox2:Hitbox) -> tuple:
         '''
         Returns True if the hitboxes overlap, False if the hitboxes are not touching
         '''
@@ -324,6 +341,9 @@ class PhysicsEngine:
             normals.append(self.get_normals(hitbox2.hitbox_coordinates[i],hitbox2.hitbox_coordinates[i+1]))
         normals.append(self.get_normals(hitbox2.hitbox_coordinates[-1],hitbox2.hitbox_coordinates[0]))
 
+
+        minimum_depth_value = 1*(10**9)
+        retained_vector = None
         for normal in normals:
             k1_values = []
             for point in hitbox1.hitbox_coordinates:
@@ -332,33 +352,51 @@ class PhysicsEngine:
             k2_values = []
             for point in hitbox2.hitbox_coordinates:
                 k2_values.append(self.get_scalar_coefficient(normal,point))
+        
+            # Test separation
+            overlap_test = self.is_overlapping(k1_values,k2_values)
+            if not overlap_test[0]:
+                return (False, None)
+            
+            # Retain minimum depth value and its associated vector (used to resolve collision)
+            if min(minimum_depth_value,overlap_test[1]) == overlap_test[1]:
+                minimum_depth_value = overlap_test[1]
 
-            if not self.is_overlapping(k1_values,k2_values):
-                return False
+                # Check normal direction and invert it if needed
+                retained_vector = (round(normal[0]*minimum_depth_value), round(normal[1]*minimum_depth_value))
 
+                vector_a_b = utils.Utils.get_vector(hitbox1.parent.world_coords, hitbox2.parent.world_coords)
+                scalar_coefficient = self.get_scalar_coefficient(normal,vector_a_b)
+                if scalar_coefficient > 0:
+                    retained_vector = (-1*retained_vector[0], -1*retained_vector[1])
+
+
+
+        # If no separation is found in all normals :
         collision_label = pyglet.text.Label("Colliding : "+str(hitbox1)+" and "+str(hitbox2),
                 font_size=18,
-                x=10, y=620)
+                x=10, y=580)
 
         self.parent.parent.rendering_engine.debug_render_queue.enqueue(collision_label)
-        return True
+        return (True,retained_vector)
 
             
-    def is_overlapping(self, list1, list2) -> bool:
+    def is_overlapping(self, list1, list2) -> tuple:
         k1_max = utils.Utils.get_max(list1)
         k1_min = utils.Utils.get_min(list1)
         k2_max = utils.Utils.get_max(list2)
         k2_min = utils.Utils.get_min(list2)
 
-        if k1_max - k2_min <= 0:
-            return False
+        overlap_value = min(k1_max - k2_min, k2_max - k1_min)
+        # if k1_max - k2_min <= 0:
+        #     return False
 
-        if k2_max - k1_min <= 0:
-            return False
+        # if k2_max - k1_min <= 0:
+        #     return False
+        if overlap_value <= 0:
+            return (False, overlap_value)
         
-        return True
-
-
+        return (True, overlap_value)
 
 
     def get_normals(self, point_a:tuple, point_b:tuple)-> tuple:

@@ -40,6 +40,7 @@ class RenderingEngine(pyglet.window.Window):
         def on_draw():
             
             self.parent.prepare_to_render()
+            self.parent.input_manager.execute()
             self.clear()
             self.batch.draw()
             self.render_debug(self.debug_render_queue)
