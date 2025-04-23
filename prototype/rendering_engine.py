@@ -8,7 +8,7 @@ class RenderingEngine(pyglet.window.Window):
     def __init__(self, parent:Main):
         super().__init__(caption="prototype window", width = 1280, height = 720)
 
-        cursor_image = pyglet.image.load("prototype/assets/images/cursor/arrow.png")
+        cursor_image = pyglet.image.load("prototype/assets/textures/cursor/arrow.png")
         cursor = pyglet.window.ImageMouseCursor(cursor_image, 3, 21)
         #self.set_exclusive_mouse(True)
         self.set_mouse_cursor(cursor)

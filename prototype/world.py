@@ -9,25 +9,25 @@ class World:
         
         self.physics_engine = PhysicsEngine(self)
         self.camera = Camera(self)
-        self.environment = Environment(self,"prototype/assets/images/textures/blueprint-background_HD.png", 0)
+        self.environment = Environment(self,"prototype/assets/textures/environment/blueprint-background_HD.png", 0)
         self.environment.fixed = True
 
-        self.alpha_player = Player(self, "misc/default_texture.png", 1)
+        self.alpha_player = Player(self, "prototype/assets/textures/entity/default_texture.png", 1)
         self.alpha_player.hitbox = Hitbox(self.alpha_player, "rectangle", (100,100))
         self.alpha_player.hitbox.render = True
         self.alpha_player.world_coords = [350,150]
 
-        self.debug_object = DebugObject(self, "misc/default_texture.png", 1, True)
+        self.debug_object = DebugObject(self, "prototype/assets/textures/entity/default_texture.png", 1, True)
         self.debug_object.hitbox = Hitbox(self.debug_object, "triangle", (150,20))
         self.debug_object.hitbox.render = True
         self.debug_object.world_coords = [-350,-150]
 
-        self.debug_object2 = DebugObject(self, "misc/default_texture.png", 1, False)
+        self.debug_object2 = DebugObject(self, "prototype/assets/textures/entity/default_texture.png", 1, False)
         self.debug_object2.hitbox = Hitbox(self.debug_object2, "rectangle", (100,150))
         self.debug_object2.hitbox.render = True
         self.debug_object2.world_coords = [260,-190]
 
-        self.debug_object3 = DebugObject(self, "misc/default_texture.png", 1, False)
+        self.debug_object3 = DebugObject(self, "prototype/assets/textures/entity/default_texture.png", 1, False)
         self.debug_object3.hitbox = Hitbox(self.debug_object3, "triangle", (170,20))
         self.debug_object3.hitbox.render = True
         self.debug_object3.world_coords = [-50,140]
