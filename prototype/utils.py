@@ -63,7 +63,7 @@ class Utils:
         if type(point) == tuple:
             return (transtated_x, transtated_y)
         return [transtated_x, transtated_y]
-    
+
 
 
 class Queue:

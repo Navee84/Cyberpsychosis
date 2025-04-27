@@ -9,27 +9,33 @@ class World:
         
         self.physics_engine = PhysicsEngine(self)
         self.camera = Camera(self)
-        self.environment = Environment(self,"prototype/assets/textures/environment/blueprint-background_HD.png", 0)
-        self.environment.fixed = True
+        # self.environment = Environment(self,"prototype/assets/textures/environment/blueprint-background_HD.png", 0)
+        # self.environment.fixed = True
 
         self.alpha_player = Player(self, "prototype/assets/textures/entity/default_texture.png", 1)
         self.alpha_player.hitbox = Hitbox(self.alpha_player, "rectangle", (100,100))
         self.alpha_player.hitbox.render = True
         self.alpha_player.world_coords = [350,150]
+        
+        self.instanciate_main_menu()
+        # self.debug_object = DebugObject(self, "prototype/assets/textures/entity/default_texture.png", 1, True)
+        # self.debug_object.hitbox = Hitbox(self.debug_object, "triangle", (150,20))
+        # self.debug_object.hitbox.render = True
+        # self.debug_object.world_coords = [-350,-150]
 
-        self.debug_object = DebugObject(self, "prototype/assets/textures/entity/default_texture.png", 1, True)
-        self.debug_object.hitbox = Hitbox(self.debug_object, "triangle", (150,20))
-        self.debug_object.hitbox.render = True
-        self.debug_object.world_coords = [-350,-150]
+        # self.debug_object2 = DebugObject(self, "prototype/assets/textures/entity/default_texture.png", 1, False)
+        # self.debug_object2.hitbox = Hitbox(self.debug_object2, "rectangle", (100,150))
+        # self.debug_object2.hitbox.render = True
+        # self.debug_object2.world_coords = [260,-190]
 
-        self.debug_object2 = DebugObject(self, "prototype/assets/textures/entity/default_texture.png", 1, False)
-        self.debug_object2.hitbox = Hitbox(self.debug_object2, "rectangle", (100,150))
-        self.debug_object2.hitbox.render = True
-        self.debug_object2.world_coords = [260,-190]
+    def instanciate_main_menu(self):
+        self.tite_image = PlainImage(self, "prototype/assets/textures/title.png",(640,660),0)
 
+    
+    def instanciate_debug(self):
         self.debug_object3 = DebugObject(self, "prototype/assets/textures/entity/default_texture.png", 1, False)
         self.debug_object3.hitbox = Hitbox(self.debug_object3, "triangle", (170,20))
-        self.debug_object3.hitbox.render = True
+        self.debug_object3.hitbox.render = False
         self.debug_object3.world_coords = [-50,140]
 
     def update_objects_positions(self): # object must be WorldObject type
@@ -37,8 +43,22 @@ class World:
             object.apply_physics()
             object.update_sprite_position()
     
-    def add_to_batch(self,object): # object must be WorldObject type
+    def add_to_batch(self, object, group:int): # object must be WorldObject | PlainImage type
         object.sprite.batch = self.parent.rendering_engine.batch
+        object.sprite.group = self.get_correct_batch_group(group)
+
+    def get_correct_batch_group(self,number:int):
+        match number:
+            case 0:
+                return self.parent.rendering_engine.batch_layer_background
+            case 1:
+                return self.parent.rendering_engine.batch_layer_middleground
+            case 2:
+                return self.parent.rendering_engine.batch_layer_foreground
+            case 3:
+                return self.parent.rendering_engine.batch_layer_ui
+            case _:
+                return None
     
     def remove_from_batch(self,object): # object must be WorldObject type
         pass
@@ -50,6 +70,59 @@ class World:
         # Change this to change the camera focus
         self.camera.set_pos(self.alpha_player.world_coords)
 
+class PlainImage:
+    def __init__(self, parent:World, sprite_path:str, position:tuple, orientation):
+        self.parent = parent
+        self.sprite = utils.Utils.sprite_load(sprite_path)
+        self.pos = position
+        self.orientation = orientation
+        self.parent.add_to_batch(self,2)
+
+        self.uptade_sprite()
+
+    def set_position(self,coords:tuple):
+        self.pos = coords
+
+    def set_orientation(self,orientation):
+        self.orientation = orientation
+    
+    def uptade_sprite(self):
+        self.sprite.x = self.pos[0]
+        self.sprite.y = self.pos[1]
+        self.sprite.orientation = utils.degrees(-self.orientation)
+
+class Button:
+    def __init__(self, parent:World, position:tuple, dimentions:tuple, texture:str):
+        self.parent = parent
+        self.sprite = utils.Utils.sprite_load(texture)
+        self.pos = position
+        self.dimentions = dimentions
+
+
+    def uptade_sprite(self):
+        self.sprite.x = self.pos[0]
+        self.sprite.y = self.pos[1]
+    def is_hovered(self, mouse_pos:tuple)->bool:
+        mousex, mousey = mouse_pos
+        width, height = self.dimentions
+
+        if mousex < self.pos[0] - width//2:
+            return False
+        if mousex > self.pos[0] + width//2:
+            return False
+
+        if mousey < self.pos[1] - height//2:
+            return False
+        if mousey > self.pos[1] + height//2:
+            return False
+        
+        return True
+        
+    
+    def is_clicked(self)->bool:
+        if not self.is_hovered():
+            return False
+        
 
 class WorldObject:
     def __init__(self, parent:World, texture:str, group:int, fixation:bool):
@@ -193,7 +266,7 @@ class Hitbox:
         
         self.dimensions = dimensions
         self.preset = preset
-        self.render = True
+        self.render = False
         self.is_colliding = False
 
         self.size = 1

@@ -37,6 +37,15 @@ class RenderingEngine(pyglet.window.Window):
             parent.input_manager.input_add(symbol)
 
         @self.event
+        def on_mouse_press(x,y,button, modifiers):
+            parent.input_manager.input_add(button)
+            print(button)
+
+        @self.event
+        def on_mouse_release(x,y,button, modifiers):
+            parent.input_manager.input_remove(button)
+
+        @self.event
         def on_draw():
             
             self.parent.prepare_to_render()

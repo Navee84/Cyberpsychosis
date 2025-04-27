@@ -22,7 +22,9 @@ class InputManager:
         self.input_commands = {pyglet.window.key.Z: parent.world.alpha_player.move_up,
                                pyglet.window.key.S: parent.world.alpha_player.move_down,
                                pyglet.window.key.Q: parent.world.alpha_player.move_left,
-                               pyglet.window.key.D: parent.world.alpha_player.move_right                               }
+                               pyglet.window.key.D: parent.world.alpha_player.move_right,
+                               pyglet.window.key.UP: parent.world.instanciate_debug
+                               }
         self.input_list = []
 
     def input_add(self,input):
