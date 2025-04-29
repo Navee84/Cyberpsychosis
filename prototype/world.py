@@ -6,11 +6,11 @@ class World:
     def __init__(self,parent:Main):
         self.parent = parent
         self.objects_list = []
+        self.game_state = "MainMenu"
         
         self.physics_engine = PhysicsEngine(self)
         self.camera = Camera(self)
-        # self.environment = Environment(self,"prototype/assets/textures/environment/blueprint-background_HD.png", 0)
-        # self.environment.fixed = True
+
 
         self.alpha_player = Player(self, "prototype/assets/textures/entity/default_texture.png", 1)
         self.alpha_player.hitbox = Hitbox(self.alpha_player, "rectangle", (100,100))
@@ -18,20 +18,44 @@ class World:
         self.alpha_player.world_coords = [350,150]
         
         self.instanciate_main_menu()
-        # self.debug_object = DebugObject(self, "prototype/assets/textures/entity/default_texture.png", 1, True)
-        # self.debug_object.hitbox = Hitbox(self.debug_object, "triangle", (150,20))
-        # self.debug_object.hitbox.render = True
-        # self.debug_object.world_coords = [-350,-150]
 
-        # self.debug_object2 = DebugObject(self, "prototype/assets/textures/entity/default_texture.png", 1, False)
-        # self.debug_object2.hitbox = Hitbox(self.debug_object2, "rectangle", (100,150))
-        # self.debug_object2.hitbox.render = True
-        # self.debug_object2.world_coords = [260,-190]
+    def tick(self):
+        match self.game_state:
+            case "MainMenu":
+                self.main_menu()
+
+            case "Game":
+                self.update_objects_positions()
+                self.update_camera_position()
+                self.alpha_player.render_values()
+
+
 
     def instanciate_main_menu(self):
         self.tite_image = PlainImage(self, "prototype/assets/textures/title.png",(640,660),0)
+        button_sprite = utils.Utils.animated_sprite_load({"prototype/assets/textures/ui/play_button_1.png":None, "prototype/assets/textures/ui/play_button_2.png":None})
+        self.play_button = Button(self, (200,200), (150,75), button_sprite)
 
-    
+    def main_menu(self):
+        if self.play_button.is_clicked((self.parent.rendering_engine._mouse_x, self.parent.rendering_engine._mouse_y), True):
+            self.instanciate_game()
+
+    def instanciate_game(self):
+        self.environment = Environment(self,"prototype/assets/textures/environment/blueprint-background_HD.png", 0)
+        self.environment.fixed = True
+
+        self.debug_object = DebugObject(self, "prototype/assets/textures/entity/default_texture.png", 1, True)
+        self.debug_object.hitbox = Hitbox(self.debug_object, "triangle", (150,20))
+        self.debug_object.hitbox.render = True
+        self.debug_object.world_coords = [-350,-150]
+
+        self.debug_object2 = DebugObject(self, "prototype/assets/textures/entity/default_texture.png", 1, False)
+        self.debug_object2.hitbox = Hitbox(self.debug_object2, "rectangle", (100,150))
+        self.debug_object2.hitbox.render = True
+        self.debug_object2.world_coords = [260,-190]
+
+        self.game_state = "Game"
+
     def instanciate_debug(self):
         self.debug_object3 = DebugObject(self, "prototype/assets/textures/entity/default_texture.png", 1, False)
         self.debug_object3.hitbox = Hitbox(self.debug_object3, "triangle", (170,20))
@@ -92,19 +116,27 @@ class PlainImage:
         self.sprite.orientation = utils.degrees(-self.orientation)
 
 class Button:
-    def __init__(self, parent:World, position:tuple, dimentions:tuple, texture:str):
+    def __init__(self, parent:World, position:tuple, dimentions:tuple, sprite):
+        '''
+        sprite argument must be pyglet.sprite.Sprite type
+        '''
         self.parent = parent
-        self.sprite = utils.Utils.sprite_load(texture)
+        self.sprite = sprite
         self.pos = position
         self.dimentions = dimentions
+
+        self.parent.add_to_batch(self,2)
+        self.uptade_sprite()
 
 
     def uptade_sprite(self):
         self.sprite.x = self.pos[0]
         self.sprite.y = self.pos[1]
+
     def is_hovered(self, mouse_pos:tuple)->bool:
         mousex, mousey = mouse_pos
         width, height = self.dimentions
+        self.sprite.frame_inex = 0
 
         if mousex < self.pos[0] - width//2:
             return False
@@ -116,16 +148,20 @@ class Button:
         if mousey > self.pos[1] + height//2:
             return False
         
+        self.sprite.frame_index = 1
         return True
         
     
-    def is_clicked(self)->bool:
-        if not self.is_hovered():
+    def is_clicked(self, mouse_pos:tuple, mouse_state)->bool:
+        if not self.is_hovered(mouse_pos):
             return False
+        
+        return True
         
 
 class WorldObject:
     def __init__(self, parent:World, texture:str, group:int, fixation:bool):
+
         self.parent = parent
         self.fixed = fixation
 

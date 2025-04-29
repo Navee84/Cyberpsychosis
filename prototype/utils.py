@@ -12,6 +12,26 @@ class Utils:
         image.anchor_x = image.width // 2
         image.anchor_y = image.height // 2
         return pyglet.sprite.Sprite(image)
+
+    def animated_sprite_load(images:dict) -> pyglet.sprite.Sprite:
+        '''
+        images must be the following format : dict = {frame1_path: duration, frame2_path: duration}
+        where framex_path is a str and duration can be None or a float
+        '''
+        frame_list = []
+
+        for frame in images.keys():
+            image = pyglet.image.load(frame)
+            image.anchor_x = image.width // 2
+            image.anchor_y = image.height // 2
+
+            formated_frame = pyglet.image.animation.AnimationFrame(image, images[frame])
+            frame_list.append(formated_frame)
+
+        animation = pyglet.image.animation.Animation(frame_list)
+
+        return pyglet.sprite.Sprite(animation)
+
     
     def create_line(starting_point:tuple, ending_point:tuple, color):
         return pyglet.shapes.Line(starting_point[0], starting_point[1],

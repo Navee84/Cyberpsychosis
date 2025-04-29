@@ -8,9 +8,10 @@ class Main:
         self.input_manager = InputManager(self)
     
     def prepare_to_render(self):
-        self.world.update_objects_positions()
-        self.world.update_camera_position()
-        self.world.alpha_player.render_values()
+        self.world.tick()
+        # self.world.update_objects_positions()
+        # self.world.update_camera_position()
+        # self.world.alpha_player.render_values()
     
     
 
