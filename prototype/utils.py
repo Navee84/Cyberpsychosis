@@ -1,5 +1,7 @@
 import pyglet
+import pyglet.window.mouse
 from math import cos, sin, atan, degrees, radians
+import os
 
 class Utils:
     def __init__(self):
@@ -99,3 +101,20 @@ class Queue:
     def dequeue(self):
         if not self.is_empty():
             return self.queue.pop(0)
+        
+class MusicManager(pyglet.media.Player):
+    def __init__(self):
+        super().__init__()
+    
+        self.music_dict = {}
+
+        for music in os.listdir("prototype/assets/musics"):
+            source = pyglet.media.load("prototype/assets/musics/"+music)
+            name = music.lower()
+            name = name.replace(" ","_")
+            name = name[:len(music)-4]
+
+            self.music_dict[name] = source
+
+        print(self.music_dict)
+        

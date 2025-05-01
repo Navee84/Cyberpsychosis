@@ -5,6 +5,9 @@ from main import *
 class World:
     def __init__(self,parent:Main):
         self.parent = parent
+        self.music_manager = utils.MusicManager()
+        self.music_manager.play()
+        self.music_manager.loop = True
         self.objects_list = []
         self.game_state = "MainMenu"
         
@@ -13,36 +16,112 @@ class World:
 
 
         self.alpha_player = Player(self, "prototype/assets/textures/entity/default_texture.png", 1)
-        self.alpha_player.hitbox = Hitbox(self.alpha_player, "rectangle", (100,100))
-        self.alpha_player.hitbox.render = True
-        self.alpha_player.world_coords = [350,150]
+        self.alpha_player.hide()
         
         self.instanciate_main_menu()
 
     def tick(self):
         match self.game_state:
+            # case "LoadingScreen":
+            #     self.loading()
+                
             case "MainMenu":
                 self.main_menu()
+
+            case "PreGame1":
+                self.pre_game1()
+
+            case "PreGame2":
+                self.pre_game2()
 
             case "Game":
                 self.update_objects_positions()
                 self.update_camera_position()
                 self.alpha_player.render_values()
+                self.alpha_player.face_mouse()
 
+    # def show_loading_screen(self):
+    #     self.loading_screen = PlainImage(self,"prototype/assets/textures/ui/loading_screen.png",(0,0),0, 5)
+    #     self.game_state = "LoadingScreen"
 
+    # def loading(self):
 
+    
     def instanciate_main_menu(self):
-        self.tite_image = PlainImage(self, "prototype/assets/textures/title.png",(640,660),0)
+        self.music_manager.queue(self.music_manager.music_dict["modern_anthill"])
+
+        self.music_manager.queue
+        self.tite_image = PlainImage(self, "prototype/assets/textures/title.png",(0,275),0, 2)
+        self.background_image = PlainImage(self, "prototype/assets/textures/menu_image.png", (0,0), 0, 0)
         button_sprite = utils.Utils.animated_sprite_load({"prototype/assets/textures/ui/play_button_1.png":None, "prototype/assets/textures/ui/play_button_2.png":None})
-        self.play_button = Button(self, (200,200), (150,75), button_sprite)
+        self.play_button = Button(self, (0,0), (150,75), button_sprite)
 
     def main_menu(self):
-        if self.play_button.is_clicked((self.parent.rendering_engine._mouse_x, self.parent.rendering_engine._mouse_y), True):
-            self.instanciate_game()
+        if self.play_button.is_clicked((self.parent.rendering_engine._mouse_x, self.parent.rendering_engine._mouse_y)):
+            # self.show_loading_screen()
+            self.instanciate_pre_game(1)
+    
+    def instanciate_pre_game(self, phase):
+        match phase:
+            case 1:
+                print("PREGAME")
+                self.music_manager.queue(self.music_manager.music_dict['pre_game_1'])
+                self.music_manager.queue(self.music_manager.music_dict["pre_game_2"])
+                self.music_manager.queue(self.music_manager.music_dict["pre_game_3"])
+                self.music_manager.next_source()
+                self.music_manager.loop = False
+                context_button_sprite = utils.Utils.animated_sprite_load({"prototype/assets/textures/ui/context_screen.png":None, "prototype/assets/textures/ui/context_screen.png":None})
+                self.context_button = Button(self, (0,0), (1280,720), context_button_sprite)
+
+                self.has_looped = False
+                self.game_state = "PreGame1"
+
+            case 2:
+                self.music_manager.loop = False
+                instructions_button_sprite = utils.Utils.animated_sprite_load({"prototype/assets/textures/ui/instruction_screen.png":None, "prototype/assets/textures/ui/instruction_screen.png":None})
+                self.intruction_button = Button(self, (0,0), (1280,720), instructions_button_sprite)
+
+                self.game_state = "PreGame2"
+        
+    def pre_game1(self):
+        if self.music_manager.source == self.music_manager.music_dict["pre_game_2"] and self.has_looped != True:
+            self.music_manager.loop = True
+            self.has_looped = True
+
+        if self.parent.rendering_engine.mouse_state_release == True
+            if self.context_button.is_clicked((self.parent.rendering_engine.mouse_state["x"], self.parent.rendering_engine.mouse_state["y"])):
+                self.instanciate_pre_game(2)
+
+
+    def pre_game2(self):
+        if self.music_manager.source == self.music_manager.music_dict["pre_game_2"] and self.has_looped != True:
+            self.music_manager.loop = True
+            self.has_looped = True
+        
+            
+            self.context_button = None
+                   
+        
+
 
     def instanciate_game(self):
+
+        # Clear main menu elements
+        self.tite_image = None
+        self.play_button = None
+        self.background_image = None
+
+        # Instanciate game elements
+        self.music_manager.queue(self.music_manager.music_dict["extraction_action"])
+        self.music_manager.next_source()
+
         self.environment = Environment(self,"prototype/assets/textures/environment/blueprint-background_HD.png", 0)
         self.environment.fixed = True
+
+        self.alpha_player.show()
+        self.alpha_player.hitbox = Hitbox(self.alpha_player, "rectangle", (100,100))
+        self.alpha_player.hitbox.render = True
+        self.alpha_player.world_coords = [350,150]
 
         self.debug_object = DebugObject(self, "prototype/assets/textures/entity/default_texture.png", 1, True)
         self.debug_object.hitbox = Hitbox(self.debug_object, "triangle", (150,20))
@@ -54,6 +133,7 @@ class World:
         self.debug_object2.hitbox.render = True
         self.debug_object2.world_coords = [260,-190]
 
+        # self.loading_screen = None
         self.game_state = "Game"
 
     def instanciate_debug(self):
@@ -81,6 +161,8 @@ class World:
                 return self.parent.rendering_engine.batch_layer_foreground
             case 3:
                 return self.parent.rendering_engine.batch_layer_ui
+            case 4:
+                return self.parent.rendering_engine.batch_layer_loadingscreen
             case _:
                 return None
     
@@ -95,15 +177,15 @@ class World:
         self.camera.set_pos(self.alpha_player.world_coords)
 
 class PlainImage:
-    def __init__(self, parent:World, sprite_path:str, position:tuple, orientation):
+    def __init__(self, parent:World, sprite_path:str, position:tuple, orientation, layer):
         self.parent = parent
         self.sprite = utils.Utils.sprite_load(sprite_path)
         self.pos = position
         self.orientation = orientation
-        self.parent.add_to_batch(self,2)
+        self.parent.add_to_batch(self,layer)
 
         self.uptade_sprite()
-
+    
     def set_position(self,coords:tuple):
         self.pos = coords
 
@@ -111,8 +193,8 @@ class PlainImage:
         self.orientation = orientation
     
     def uptade_sprite(self):
-        self.sprite.x = self.pos[0]
-        self.sprite.y = self.pos[1]
+        self.sprite.x = self.pos[0] + self.parent.parent.rendering_engine.window_center[0]
+        self.sprite.y = self.pos[1] + self.parent.parent.rendering_engine.window_center[1]
         self.sprite.orientation = utils.degrees(-self.orientation)
 
 class Button:
@@ -130,33 +212,42 @@ class Button:
 
 
     def uptade_sprite(self):
-        self.sprite.x = self.pos[0]
-        self.sprite.y = self.pos[1]
+        self.sprite.x = self.pos[0] + self.parent.parent.rendering_engine.window_center[0]
+        self.sprite.y = self.pos[1] + self.parent.parent.rendering_engine.window_center[1]
 
     def is_hovered(self, mouse_pos:tuple)->bool:
         mousex, mousey = mouse_pos
         width, height = self.dimentions
-        self.sprite.frame_inex = 0
+        self.sprite.frame_index = 0
 
-        if mousex < self.pos[0] - width//2:
+        if mousex < self.pos[0] + self.parent.parent.rendering_engine.window_center[0] - width//2:
             return False
-        if mousex > self.pos[0] + width//2:
+        if mousex > self.pos[0] + self.parent.parent.rendering_engine.window_center[0] + width//2:
             return False
 
-        if mousey < self.pos[1] - height//2:
+        if mousey < self.pos[1] + self.parent.parent.rendering_engine.window_center[1] - height//2:
             return False
-        if mousey > self.pos[1] + height//2:
+        if mousey > self.pos[1] + self.parent.parent.rendering_engine.window_center[1] + height//2:
             return False
         
         self.sprite.frame_index = 1
         return True
         
     
-    def is_clicked(self, mouse_pos:tuple, mouse_state)->bool:
+    def is_clicked(self, mouse_pos:tuple)->bool:
+        mouse_state_label = pyglet.text.Label(str(self.parent.parent.rendering_engine.mouse_state[pyglet.window.mouse.LEFT]),
+                          font_size=18,
+                          x=10, y=560)
+        self.parent.parent.rendering_engine.debug_render_queue.enqueue(mouse_state_label)
+
         if not self.is_hovered(mouse_pos):
             return False
+    
+        if self.parent.parent.rendering_engine.mouse_state[pyglet.window.mouse.LEFT] == True :
+            print("CLICKED")
+            return True
         
-        return True
+        return False
         
 
 class WorldObject:
@@ -249,6 +340,12 @@ class Player(WorldObject):
     def face_mouse(self):
         angle = utils.Utils.get_angle((self.parent.parent.rendering_engine._mouse_x,self.parent.parent.rendering_engine._mouse_y),self.get_screen_pos())
         self.orientation = angle
+
+    def hide(self):
+        self.sprite.visible = False
+
+    def show(self):
+        self.sprite.visible = True
 
     def render_values(self):
         coords_label = pyglet.text.Label("Coords : "+str(self.world_coords),

@@ -1,4 +1,5 @@
 import pyglet
+import pyglet.window.mouse
 
 
 class Main:
@@ -9,9 +10,7 @@ class Main:
     
     def prepare_to_render(self):
         self.world.tick()
-        # self.world.update_objects_positions()
-        # self.world.update_camera_position()
-        # self.world.alpha_player.render_values()
+        self.rendering_engine.push_handlers(self.rendering_engine.mouse_state)
     
     
 
@@ -38,7 +37,6 @@ class InputManager:
         for input in self.input_list:
             if input in self.input_commands.keys():
                 self.input_commands[input]()
-        self.parent.world.alpha_player.face_mouse()
 
 # scripts
 import rendering_engine

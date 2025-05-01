@@ -1,4 +1,5 @@
 import pyglet
+import pyglet.window.mouse
 import utils
 import world
 from main import *
@@ -13,6 +14,9 @@ class RenderingEngine(pyglet.window.Window):
         #self.set_exclusive_mouse(True)
         self.set_mouse_cursor(cursor)
         self.set_mouse_visible(True)
+        self.mouse_state = pyglet.window.mouse.MouseStateHandler()
+        self.push_handlers(self.mouse_state)
+        self.mouse_state_release = True
 
         self.parent = parent
         self.window_center = (self.width // 2, self.height // 2)
@@ -23,6 +27,7 @@ class RenderingEngine(pyglet.window.Window):
         self.batch_layer_middleground = pyglet.graphics.Group(order=1)
         self.batch_layer_foreground = pyglet.graphics.Group(order=2)
         self.batch_layer_ui = pyglet.graphics.Group(order=3)
+        self.batch_layer_loadingscreen = pyglet.graphics.Group(order=5)
 
         self.debug_render_queue = utils.Queue()
 
@@ -37,13 +42,12 @@ class RenderingEngine(pyglet.window.Window):
             parent.input_manager.input_add(symbol)
 
         @self.event
-        def on_mouse_press(x,y,button, modifiers):
-            parent.input_manager.input_add(button)
-            print(button)
+        def on_mouse_press(x,y, button, modifiers):
+            self.mouse_state_release = False
 
         @self.event
-        def on_mouse_release(x,y,button, modifiers):
-            parent.input_manager.input_remove(button)
+        def on_mouse_release(x,y, button, modifiers):
+            self.mouse_state_release = True
 
         @self.event
         def on_draw():
