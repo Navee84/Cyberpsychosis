@@ -214,21 +214,21 @@ class World:
         self.music_manager.play()
         self.music_manager.loop = True
 
-        self.environment = Environment(self,"game/assets/textures/environment/blueprint-background_HD.png", 0)
+        self.environment = Environment(self,"game/assets/textures/environment/map_placeholder.png", 0)
         self.environment.fixed = True
 
         self.player.show()
-        self.player.hitbox = Hitbox(self.player, "rectangle", (100,100))
+        self.player.hitbox = Hitbox(self.player, "rectangle", (64,64))
         self.player.hitbox.render = True
         self.player.world_coords = [350,150]
 
         self.debug_object = Enemy(self, "NCPD")
-        self.debug_object.hitbox = Hitbox(self.debug_object, "triangle", (150,20))
+        self.debug_object.hitbox = Hitbox(self.debug_object, "rectangle", (64,64))
         self.debug_object.hitbox.render = True
         self.debug_object.world_coords = [-350,-150]
 
         self.debug_object = Enemy(self, "NCPD")
-        self.debug_object.hitbox = Hitbox(self.debug_object, "rectangle", (100,150))
+        self.debug_object.hitbox = Hitbox(self.debug_object, "rectangle", (64,64))
         self.debug_object.hitbox.render = True
         self.debug_object.world_coords = [260,-190]
 
@@ -488,13 +488,13 @@ class WorldObject:
         # Defining all default values for a WorldObject
         self.sprite = utils.Utils.sprite_load(texture)
         self.orientation = 0 # 0 means facing right
-        self.fov = 1
+        self.fov = 2
         self.hitbox = None
 
         # Movement values
         self.acceleration = 0
         self.max_speed = 0
-        self.friction = 0.8 # Keep this value between 0 and 1 : 1 is no friction and 0 is maximum friction 
+        self.friction = 0.45 # Keep this value between 0 and 1 : 1 is no friction and 0 is maximum friction 
 
         self.world_coords = [0,0]
         self.speed = [0,0]
@@ -627,7 +627,7 @@ class Enemy(WorldObject):
         if self.brain_phase == 0:
             pass
         
-        if utils.Utils.distance(self.world_coords,self.parent.player.world_coords) < 350:
+        if utils.Utils.distance(self.world_coords,self.parent.player.world_coords) < 275:
             self.face_player()
         self.brain_phase = (self.brain_phase + 1)%self.brain_speed
     
@@ -654,6 +654,11 @@ class Camera:
 
     def set_pos(self,coords:list):
         self.pos = coords
+
+
+class Inventory:
+    def __init__(self):
+        pass
 
 
 
@@ -726,7 +731,7 @@ class Hitbox:
 
         rotated_list = []
         for point in point_list:
-            rotated_list.append(utils.Utils.apply_rotation(self.parent.world_coords,point,self.parent.orientation))
+            rotated_list.append(utils.Utils.apply_rotation(self.parent.world_coords,point,self.parent.orientation- (utils.radians(90))))
 
         return rotated_list
 

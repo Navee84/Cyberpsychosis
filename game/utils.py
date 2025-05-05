@@ -103,6 +103,9 @@ class Queue:
     def is_empty(self):
         return self.queue == []
     
+    def get_size(self):
+        return len(self.queue)
+    
     def enqueue(self,object):
         self.queue.append(object)
     
@@ -116,8 +119,8 @@ class MusicManager(pyglet.media.Player):
     
         self.music_dict = {}
 
-        for music in os.listdir("prototype/assets/musics"):
-            source = pyglet.media.load("prototype/assets/musics/"+music)
+        for music in os.listdir("game/assets/musics"):
+            source = pyglet.media.load("game/assets/musics/"+music)
             name = music.lower()
             name = name.replace(" ","_")
             name = name[:len(music)-4]
