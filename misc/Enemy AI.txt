@@ -1,0 +1,9 @@
+Si munitions vides et à portée:
+    s'éloigner hors de portée
+    recharger
+
+Si a portée:
+    se rapprocher jusqu'a portée
+
+se touurner vers le joueur
+tirer

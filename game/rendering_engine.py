@@ -9,15 +9,11 @@ class RenderingEngine(pyglet.window.Window):
     def __init__(self, parent:Main):
         super().__init__(caption="prototype window", width = 1280, height = 720)
 
-        cursor_image = pyglet.image.load("prototype/assets/textures/cursor/arrow.png")
+        cursor_image = pyglet.image.load("game/assets/textures/cursor/arrow.png")
         cursor = pyglet.window.ImageMouseCursor(cursor_image, 3, 21)
         #self.set_exclusive_mouse(True)
         self.set_mouse_cursor(cursor)
         self.set_mouse_visible(True)
-        self.mouse_state = pyglet.window.mouse.MouseStateHandler()
-        self.push_handlers(self.mouse_state)
-        self.mouse_state_release = True
-
         self.parent = parent
         self.window_center = (self.width // 2, self.height // 2)
         self.fps_display = pyglet.window.FPSDisplay(self) # ONLY FOR DEBUG AND DEVELOPMENT
@@ -43,11 +39,11 @@ class RenderingEngine(pyglet.window.Window):
 
         @self.event
         def on_mouse_press(x,y, button, modifiers):
-            self.mouse_state_release = False
+            parent.input_manager.mouse_inputs_add(button)
 
         @self.event
         def on_mouse_release(x,y, button, modifiers):
-            self.mouse_state_release = True
+            parent.input_manager.mouse_inputs_remove(button)
 
         @self.event
         def on_draw():

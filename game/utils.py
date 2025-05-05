@@ -4,11 +4,19 @@ from math import cos, sin, atan, degrees, radians
 import os
 
 class Utils:
-    def __init__(self):
-        self.console_prefix_error = "[ERROR]"
-        self.console_prefix_info = "[INFO]"
-        self.console_prefix_warning = "[WARNING]"
-    
+    def console_prefix(state):
+        console_prefix_error = "[ERROR]"
+        console_prefix_info = "[INFO]"
+        console_prefix_warning = "[WARNING]"
+        
+        match state:
+            case "error":
+                return console_prefix_error
+            case "info":
+                return console_prefix_info
+            case "warning":
+                return console_prefix_warning
+
     def sprite_load(path:str) -> pyglet.sprite.Sprite:
         image = pyglet.image.load(path)
         image.anchor_x = image.width // 2

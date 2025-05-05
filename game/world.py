@@ -1,4 +1,5 @@
 import utils
+import gc
 from main import *
 
 
@@ -6,17 +7,23 @@ class World:
     def __init__(self,parent:Main):
         self.parent = parent
         self.music_manager = utils.MusicManager()
-        self.music_manager.play()
-        self.music_manager.loop = True
         self.objects_list = []
+        self.enemy_list = []
+        self.game_object_list = utils.Queue()
         self.game_state = "MainMenu"
+        self.button_click = False
+        self.can_skip = False
+
+        # DEVELOPEMENT VALUES
+        self.music_manager.volume = 0 # DEVELOPEMENT ONLY
+        self.can_skip = True
         
         self.physics_engine = PhysicsEngine(self)
         self.camera = Camera(self)
 
 
-        self.alpha_player = Player(self, "prototype/assets/textures/entity/default_texture.png", 1)
-        self.alpha_player.hide()
+        self.player = Player(self, "game/assets/textures/entity/default_texture.png", 1)
+        self.player.hide()
         
         self.instanciate_main_menu()
 
@@ -34,75 +41,165 @@ class World:
             case "PreGame2":
                 self.pre_game2()
 
-            case "Game":
-                self.update_objects_positions()
-                self.update_camera_position()
-                self.alpha_player.render_values()
-                self.alpha_player.face_mouse()
+            case "PreGame3":
+                self.pre_game3()
 
+            case "Game":
+                self.game()
+
+            case "PostGame1":
+                self.post_game1()
+            
+            case "PostGame2":
+                self.post_game2()
     # def show_loading_screen(self):
-    #     self.loading_screen = PlainImage(self,"prototype/assets/textures/ui/loading_screen.png",(0,0),0, 5)
+    #     self.loading_screen = PlainImage(self,"game/assets/textures/ui/loading_screen.png",(0,0),0, 5)
     #     self.game_state = "LoadingScreen"
 
     # def loading(self):
+    def empty_music_queue(self):
+        while self.music_manager.source != None:
+            self.music_manager.next_source()
 
-    
+
+
+
+
     def instanciate_main_menu(self):
+        self.main_menu_button = None
+        self.empty_music_queue()
         self.music_manager.queue(self.music_manager.music_dict["modern_anthill"])
+        self.music_manager.play()
+        self.music_manager.loop = True
 
-        self.music_manager.queue
-        self.tite_image = PlainImage(self, "prototype/assets/textures/title.png",(0,275),0, 2)
-        self.background_image = PlainImage(self, "prototype/assets/textures/menu_image.png", (0,0), 0, 0)
-        button_sprite = utils.Utils.animated_sprite_load({"prototype/assets/textures/ui/play_button_1.png":None, "prototype/assets/textures/ui/play_button_2.png":None})
+        self.title_image = PlainImage(self, "game/assets/textures/title.png",(0,275),0, 2)
+        self.background_image = PlainImage(self, "game/assets/textures/menu_image.png", (0,0), 0, 0)
+        button_sprite = utils.Utils.animated_sprite_load({"game/assets/textures/ui/play_button_1.png":None, "game/assets/textures/ui/play_button_2.png":None})
         self.play_button = Button(self, (0,0), (150,75), button_sprite)
+
+        self.game_state = "MainMenu"
 
     def main_menu(self):
         if self.play_button.is_clicked((self.parent.rendering_engine._mouse_x, self.parent.rendering_engine._mouse_y)):
             # self.show_loading_screen()
             self.instanciate_pre_game(1)
     
+
+
     def instanciate_pre_game(self, phase):
+        self.title_image = None
+        self.play_button = None
+        self.background_image = None
         match phase:
             case 1:
                 print("PREGAME")
                 self.music_manager.queue(self.music_manager.music_dict['pre_game_1'])
                 self.music_manager.queue(self.music_manager.music_dict["pre_game_2"])
                 self.music_manager.queue(self.music_manager.music_dict["pre_game_3"])
-                self.music_manager.next_source()
+                try:
+                    self.music_manager.next_source()
+                except Exception as e:
+                    print(utils.Utils.console_prefix("warning") + str(e))
                 self.music_manager.loop = False
-                context_button_sprite = utils.Utils.animated_sprite_load({"prototype/assets/textures/ui/context_screen.png":None, "prototype/assets/textures/ui/context_screen.png":None})
+                context_button_sprite = utils.Utils.animated_sprite_load({"game/assets/textures/ui/context_screen.png":None, "game/assets/textures/ui/context_screen.png":None})
                 self.context_button = Button(self, (0,0), (1280,720), context_button_sprite)
 
                 self.has_looped = False
                 self.game_state = "PreGame1"
 
             case 2:
-                self.music_manager.loop = False
-                instructions_button_sprite = utils.Utils.animated_sprite_load({"prototype/assets/textures/ui/instruction_screen.png":None, "prototype/assets/textures/ui/instruction_screen.png":None})
-                self.intruction_button = Button(self, (0,0), (1280,720), instructions_button_sprite)
+                instructions_button_sprite = utils.Utils.animated_sprite_load({"game/assets/textures/ui/instruction_screen.png":None, "game/assets/textures/ui/instruction_screen.png":None})
+                self.instruction_button = Button(self, (0,0), (1280,720), instructions_button_sprite)
 
                 self.game_state = "PreGame2"
+
+            case 3:
+                self.music_manager.loop = False
+                self.pre_game_quote1 = PlainImage(self, "game/assets/textures/ui/pre_game_quote1.png", (0,0), 0, 2)
+                self.pre_game_quote1.sprite.opacity = 0
+
+                self.pre_game_quote2 = PlainImage(self, "game/assets/textures/ui/pre_game_quote2.png", (0,0), 0, 2)
+                self.pre_game_quote2.sprite.opacity = 0
+
+                self.opacity = 0
+                self.fade_out = False
+                self.quote_sentence = 1
+
+                self.game_state = "PreGame3"
         
     def pre_game1(self):
         if self.music_manager.source == self.music_manager.music_dict["pre_game_2"] and self.has_looped != True:
             self.music_manager.loop = True
             self.has_looped = True
 
-        if self.parent.rendering_engine.mouse_state_release == True
-            if self.context_button.is_clicked((self.parent.rendering_engine.mouse_state["x"], self.parent.rendering_engine.mouse_state["y"])):
-                self.instanciate_pre_game(2)
+        if self.context_button.is_clicked((self.parent.rendering_engine._mouse_x, self.parent.rendering_engine._mouse_y)):
+
+            self.instanciate_pre_game(2)
 
 
     def pre_game2(self):
         if self.music_manager.source == self.music_manager.music_dict["pre_game_2"] and self.has_looped != True:
             self.music_manager.loop = True
             self.has_looped = True
-        
-            
-            self.context_button = None
-                   
-        
 
+        self.context_button = None
+        if self.instruction_button.is_clicked((self.parent.rendering_engine._mouse_x, self.parent.rendering_engine._mouse_y)):
+
+            self.instanciate_pre_game(3)
+
+    def pre_game3(self):
+        image_opacity_label = pyglet.text.Label("Opacity : "+str(self.opacity),
+                          font_size=18,
+                          x=10, y=560)
+        self.parent.rendering_engine.debug_render_queue.enqueue(image_opacity_label)
+
+        if self.music_manager.source == self.music_manager.music_dict["pre_game_1"]:
+            self.music_manager.next_source()
+            self.music_manager.next_source()
+        
+        self.instruction_button = None
+        # self.music_manager.next_source()
+        # self.instanciate_game()
+
+        
+        '''
+        __        ___    ____  _   _ ___ _   _  ____ 
+        \ \      / / \  |  _ \| \ | |_ _| \ | |/ ___|
+         \ \ /\ / / _ \ | |_) |  \| || ||  \| | |  _ 
+          \ V  V / ___ \|  _ <| |\  || || |\  | |_| |
+           \_/\_/_/   \_\_| \_\_| \_|___|_| \_|\____|
+        Remember to un-comment the following lines for release, this is disabled only for developement purposes.
+        '''
+
+
+        if self.music_manager.source == self.music_manager.music_dict["pre_game_2"]:
+            return None
+
+        if self.opacity < 255 and self.fade_out == False:
+            self.opacity += 1
+        
+        if self.opacity == 255:
+            self.fade_out = True
+
+        if self.opacity > 0 and self.fade_out == True:
+            self.opacity -= 2
+        
+        if self.quote_sentence > 2 and self.music_manager.source == None or self.can_skip == True:
+            self.instanciate_game()
+
+        if self.opacity <= 0 and self.fade_out == True:
+            self.quote_sentence += 1
+            self.fade_out = False
+            self.opacity = 0
+
+
+
+        if self.quote_sentence == 1:
+            self.pre_game_quote1.sprite.opacity = self.opacity
+        elif self.quote_sentence == 2:
+            self.pre_game_quote2.sprite.opacity = self.opacity
+        
+        
 
     def instanciate_game(self):
 
@@ -112,42 +209,148 @@ class World:
         self.background_image = None
 
         # Instanciate game elements
+        self.empty_music_queue()
         self.music_manager.queue(self.music_manager.music_dict["extraction_action"])
-        self.music_manager.next_source()
+        self.music_manager.play()
+        self.music_manager.loop = True
 
-        self.environment = Environment(self,"prototype/assets/textures/environment/blueprint-background_HD.png", 0)
+        self.environment = Environment(self,"game/assets/textures/environment/blueprint-background_HD.png", 0)
         self.environment.fixed = True
 
-        self.alpha_player.show()
-        self.alpha_player.hitbox = Hitbox(self.alpha_player, "rectangle", (100,100))
-        self.alpha_player.hitbox.render = True
-        self.alpha_player.world_coords = [350,150]
+        self.player.show()
+        self.player.hitbox = Hitbox(self.player, "rectangle", (100,100))
+        self.player.hitbox.render = True
+        self.player.world_coords = [350,150]
 
-        self.debug_object = DebugObject(self, "prototype/assets/textures/entity/default_texture.png", 1, True)
+        self.debug_object = Enemy(self, "NCPD")
         self.debug_object.hitbox = Hitbox(self.debug_object, "triangle", (150,20))
         self.debug_object.hitbox.render = True
         self.debug_object.world_coords = [-350,-150]
 
-        self.debug_object2 = DebugObject(self, "prototype/assets/textures/entity/default_texture.png", 1, False)
-        self.debug_object2.hitbox = Hitbox(self.debug_object2, "rectangle", (100,150))
-        self.debug_object2.hitbox.render = True
-        self.debug_object2.world_coords = [260,-190]
+        self.debug_object = Enemy(self, "NCPD")
+        self.debug_object.hitbox = Hitbox(self.debug_object, "rectangle", (100,150))
+        self.debug_object.hitbox.render = True
+        self.debug_object.world_coords = [260,-190]
 
+        # DEBUG STUFF
+        self.skip_to_end_button_sprite = utils.Utils.animated_sprite_load({"game/assets/textures/ui/play_button_1.png":None,"game/assets/textures/ui/play_button_2.png":None})
+        self.skip_to_end_button = Button(self,(420, -260), (155,75),self.skip_to_end_button_sprite)
         # self.loading_screen = None
         self.game_state = "Game"
 
-    def instanciate_debug(self):
-        self.debug_object3 = DebugObject(self, "prototype/assets/textures/entity/default_texture.png", 1, False)
+    def game(self):
+        self.update_objects_positions()
+        self.update_camera_position()
+        self.player.render_values()
+        self.player.face_mouse()
+        self.enemy_think()
+
+        if self.skip_to_end_button.is_clicked((self.parent.rendering_engine._mouse_x, self.parent.rendering_engine._mouse_y)):
+            self.instanciate_post_game(1)
+
+
+
+    def debug_instanciate_post_game(self):
+        self.instanciate_post_game(1)
+
+    def instanciate_post_game(self, phase):
+        print("POSTGAME")
+
+
+
+        match phase:
+            case 1:
+                # DEBUG STUFF
+                self.skip_to_end_button.sprite.batch = None
+                del self.skip_to_end_button
+
+
+                self.player.hide()
+                while len(self.objects_list) > 1:
+                    if self.objects_list[-1] != self.player:
+                        self.objects_list[-1].suicide()
+
+                self.music_manager.queue(self.music_manager.music_dict["post_game"])
+                self.music_manager.loop = False
+                self.music_manager.next_source()
+
+                self.post_game_quote1 = PlainImage(self,"game/assets/textures/ui/post_game_quote_1.png", (0,0), 0, 2)
+                self.post_game_quote1.sprite.opacity = 0
+
+                self.post_game_quote2 = PlainImage(self,"game/assets/textures/ui/post_game_quote_2.png", (0,0), 0, 2)
+                self.post_game_quote2.sprite.opacity = 0
+
+
+                self.opacity = 0
+                self.fade_out = False
+                self.quote_sentence = 1
+
+                self.game_state = "PostGame1"
+            
+            case 2:
+                main_menu_button_sprite = utils.Utils.animated_sprite_load({"game/assets/textures/ui/main_menu_button.png":None})
+                self.main_menu_button = Button(self,(0,0), (1280,720), main_menu_button_sprite)
+
+                self.game_state = "PostGame2"
+
+    
+    def post_game1(self):
+
+        if self.opacity < 255 and self.fade_out == False:
+            self.opacity += 1
+        
+        if self.opacity == 255:
+            self.fade_out = True
+
+        if self.opacity > 0 and self.fade_out == True and self.quote_sentence == 1:
+            self.opacity -= 1
+        
+        if self.quote_sentence == 2 and self.opacity == 255 or self.can_skip == True:
+            self.instanciate_post_game(2)
+
+        if self.opacity <= 0 and self.fade_out == True:
+            self.quote_sentence += 1
+            self.fade_out = False
+            self.opacity = 0
+        
+        if self.quote_sentence == 1:
+            self.post_game_quote1.sprite.opacity = self.opacity
+        elif self.quote_sentence == 2:
+            self.post_game_quote2.sprite.opacity = self.opacity
+
+    def post_game2(self):
+        if self.main_menu_button.is_clicked((self.parent.rendering_engine._mouse_x, self.parent.rendering_engine._mouse_y)):
+            self.post_game_quote2 = None
+            self.can_skip = True
+            self.instanciate_main_menu()
+
+
+
+
+
+    def instanciate_enemy(self):
+        self.debug_object3 = Enemy(self, "NCPD")
         self.debug_object3.hitbox = Hitbox(self.debug_object3, "triangle", (170,20))
         self.debug_object3.hitbox.render = False
         self.debug_object3.world_coords = [-50,140]
 
-    def update_objects_positions(self): # object must be WorldObject type
-        for object in self.objects_list:
-            object.apply_physics()
-            object.update_sprite_position()
+    def add_to_enemy_list(self, object):
+        '''
+        object must be Enemy tyme
+        '''
+        self.enemy_list.append(object)
+
+    def enemy_think(self):
+        for object in self.enemy_list:
+            object.think()
+
+
+
     
-    def add_to_batch(self, object, group:int): # object must be WorldObject | PlainImage type
+    def add_to_batch(self, object, group:int):
+        '''
+        object must be WorldObject | PlainImage | Button type
+        ''' 
         object.sprite.batch = self.parent.rendering_engine.batch
         object.sprite.group = self.get_correct_batch_group(group)
 
@@ -165,16 +368,33 @@ class World:
                 return self.parent.rendering_engine.batch_layer_loadingscreen
             case _:
                 return None
-    
-    def remove_from_batch(self,object): # object must be WorldObject type
-        pass
 
     def add_to_object_list(self, object):
         self.objects_list.append(object)
     
+    def terminate(self,object):
+        if object in self.objects_list:
+            self.objects_list.remove(object)
+        if hasattr(self, 'debug_object') and self.debug_object is object:
+            self.debug_object.sprite.batch = None
+            self.debug_object = None
+        if hasattr(self, 'environment') and self.environment is object:
+            self.environment.sprite.batch = None
+            self.debug_object = None
+        gc.collect()
+
+
+    def update_objects_positions(self):
+        '''
+        object must be WorldObject type
+        '''
+        for object in self.objects_list:
+            object.apply_physics()
+            object.update_sprite_position()
+    
     def update_camera_position(self):
         # Change this to change the camera focus
-        self.camera.set_pos(self.alpha_player.world_coords)
+        self.camera.set_pos(self.player.world_coords)
 
 class PlainImage:
     def __init__(self, parent:World, sprite_path:str, position:tuple, orientation, layer):
@@ -206,6 +426,7 @@ class Button:
         self.sprite = sprite
         self.pos = position
         self.dimentions = dimentions
+        self.click_phase = 0
 
         self.parent.add_to_batch(self,2)
         self.uptade_sprite()
@@ -235,18 +456,26 @@ class Button:
         
     
     def is_clicked(self, mouse_pos:tuple)->bool:
-        mouse_state_label = pyglet.text.Label(str(self.parent.parent.rendering_engine.mouse_state[pyglet.window.mouse.LEFT]),
+        mouse_state_label = pyglet.text.Label("Click phase : "+str(self.click_phase),
                           font_size=18,
                           x=10, y=560)
         self.parent.parent.rendering_engine.debug_render_queue.enqueue(mouse_state_label)
-
         if not self.is_hovered(mouse_pos):
-            return False
+            self.click_phase = 0
+
+        if self.click_phase == 1:
+            if self.is_hovered(mouse_pos):
+                if self.parent.parent.input_manager.mouse_inputs_state["LMB"] == False :
+                    self.click_phase = 2
+        if self.click_phase == 0:
+            if self.is_hovered(mouse_pos):
+                if self.parent.parent.input_manager.mouse_inputs_state["LMB"] == True :
+                    self.click_phase = 1
     
-        if self.parent.parent.rendering_engine.mouse_state[pyglet.window.mouse.LEFT] == True :
+        if self.click_phase == 2:
+            self.click_phase = 0
             print("CLICKED")
             return True
-        
         return False
         
 
@@ -276,9 +505,14 @@ class WorldObject:
 
 
         # Render related initialisation
-        self.sprite.batch = parent.parent.rendering_engine.batch
-        self.sprite.group = self.get_correct_batch_group(group)
+        self.parent.add_to_batch(self, group)
+        # self.sprite.batch = parent.parent.rendering_engine.batch
+        # self.sprite.group = self.get_correct_batch_group(group)
         self.add_to_world_object_list()
+    
+
+    def suicide(self):
+        self.parent.terminate(self)
 
     def apply_physics(self):
         self.parent.physics_engine.update_position(self)
@@ -369,6 +603,45 @@ class Player(WorldObject):
         self.parent.parent.rendering_engine.debug_render_queue.enqueue(orientation_label)
         self.parent.parent.rendering_engine.debug_render_queue.enqueue(mouse_pos_label)
 
+class Enemy(WorldObject):
+    def __init__(self, parent:World, preset:str):
+        self.parent = parent
+        allowed_presets = ("NCPD","MAXTAC")
+        if not preset in allowed_presets:
+            raise TypeError(f"{utils.Utils.console_prefix("error")} enemy preset : '{preset}' is not a valid preset")
+        
+        match preset:
+            case "NCPD":
+                texture = "game/assets/textures/entity/default_texture.png"
+                self.brain_phase = 0
+                self.brain_speed = 5
+            case "MAXTAC":
+                texture = "game/assets/textures/entity/default_texture.png"
+                self.brain_phase = 0
+                self.brain_speed = 2
+        
+        super().__init__(parent, texture, 2, False)
+        self.parent.add_to_enemy_list(self)
+    
+    def think(self):
+        if self.brain_phase == 0:
+            pass
+        
+        if utils.Utils.distance(self.world_coords,self.parent.player.world_coords) < 350:
+            self.face_player()
+        self.brain_phase = (self.brain_phase + 1)%self.brain_speed
+    
+    def update_route(self):
+        pass
+
+
+    
+
+    def face_player(self):
+        self.orientation = utils.Utils.get_angle(self.world_coords,self.parent.player.world_coords)
+
+
+
 
 class Environment(WorldObject): # UNIQUE OBJECT, DEFiNE THE BACKGROUND ENVIRONMENT
     def __init__(self, parent, texture:str, group:int):
@@ -381,10 +654,6 @@ class Camera:
 
     def set_pos(self,coords:list):
         self.pos = coords
-
-class DebugObject(WorldObject):
-    def __init__(self, parent, texture:str, group:int, fixation:bool):
-        super().__init__(parent, texture, group, fixation)
 
 
 
