@@ -1,6 +1,6 @@
 import pyglet
 import pyglet.window.mouse
-from math import cos, sin, atan, degrees, radians
+from math import cos, sin, atan, degrees, radians, atan2
 import os
 
 class Utils:
@@ -75,7 +75,7 @@ class Utils:
         return final_point
     
     def get_angle(point_a, point_b):
-        angle = atan((point_b[1]-point_a[1])/(point_b[0]-point_a[0]+0.01)) # +0.01 is here to prevent divisons by 0
+        angle = atan2((point_b[1]-point_a[1]),(point_b[0]-point_a[0])) # +0.01 is here to prevent divisons by 0
         return angle
     
     def get_vector(point_a:tuple, point_b:tuple) -> tuple:
@@ -93,6 +93,12 @@ class Utils:
         if type(point) == tuple:
             return (transtated_x, transtated_y)
         return [transtated_x, transtated_y]
+
+    def decompose_into_vector(length, theta):
+        vx = cos(theta)*length
+        vy = sin(theta)*length
+
+        return [vx,vy]
 
 
 

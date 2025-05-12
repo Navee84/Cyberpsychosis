@@ -9,6 +9,7 @@ class World:
         self.music_manager = utils.MusicManager()
         self.objects_list = []
         self.enemy_list = []
+        self.bullet_list = []
         self.game_object_list = utils.Queue()
         self.game_state = "MainMenu"
         self.button_click = False
@@ -244,6 +245,9 @@ class World:
         self.player.render_values()
         self.player.face_mouse()
         self.enemy_think()
+        for bullet in self.bullet_list:
+            bullet.range_limiter()
+
 
         if self.skip_to_end_button.is_clicked((self.parent.rendering_engine._mouse_x, self.parent.rendering_engine._mouse_y)):
             self.instanciate_post_game(1)
@@ -326,7 +330,7 @@ class World:
 
 
 
-
+    # ENEMY
 
     def instanciate_enemy(self):
         self.debug_object3 = Enemy(self, "NCPD")
@@ -336,7 +340,7 @@ class World:
 
     def add_to_enemy_list(self, object):
         '''
-        object must be Enemy tyme
+        object must be Enemy type
         '''
         self.enemy_list.append(object)
 
@@ -344,6 +348,17 @@ class World:
         for object in self.enemy_list:
             object.think()
 
+    # BULLETS
+
+    def instanciate_bullet(self, parameters:tuple):
+        self.bullet_object = Bullet(self, parameters[0], parameters[1], parameters[2], parameters[3], parameters[4])
+    
+    def add_bullet_to_list(self, object):
+        '''
+        Object must be Bullet type
+        '''
+
+        self.bullet_list.append(object)
 
 
     
@@ -380,7 +395,11 @@ class World:
             self.debug_object = None
         if hasattr(self, 'environment') and self.environment is object:
             self.environment.sprite.batch = None
-            self.debug_object = None
+            self.environment = None
+        if hasattr(self, 'bullet_object') and self.bullet_object is object:
+            self.bullet_list.remove(object)
+            self.bullet_object.sprite.batch = None
+            self.bullet_object = None
         gc.collect()
 
 
@@ -550,7 +569,6 @@ class WorldObject:
             case _:
                 return None
 
-
 class Player(WorldObject):
     def __init__(self, parent, texture:str, group:int):
         super().__init__(parent, texture, group, False)
@@ -558,6 +576,9 @@ class Player(WorldObject):
         # movement values:
         self.acceleration = 2
         self.max_speed = 6
+
+        # Inventory values:
+        self.inventory = Inventory(self)
     
     def move_up(self):
         self.speed[1] = round(min(self.max_speed,self.speed[1]+self.acceleration),2)
@@ -572,7 +593,7 @@ class Player(WorldObject):
         self.speed[0] = round(min(self.max_speed,self.speed[0]+self.acceleration),2)
 
     def face_mouse(self):
-        angle = utils.Utils.get_angle((self.parent.parent.rendering_engine._mouse_x,self.parent.parent.rendering_engine._mouse_y),self.get_screen_pos())
+        angle = utils.Utils.get_angle(self.get_screen_pos(),(self.parent.parent.rendering_engine._mouse_x,self.parent.parent.rendering_engine._mouse_y))
         self.orientation = angle
 
     def hide(self):
@@ -656,9 +677,7 @@ class Camera:
         self.pos = coords
 
 
-class Inventory:
-    def __init__(self):
-        pass
+
 
 
 
@@ -888,3 +907,6 @@ class PhysicsEngine:
         k = (vector[0]*point[0] + vector[1]*point[1]) / (vector[0]**2 + vector[1]**2)
         rounded = round(k,3)
         return rounded
+    
+
+from weapon_system import *
