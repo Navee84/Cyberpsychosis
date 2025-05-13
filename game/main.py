@@ -27,6 +27,7 @@ class InputManager:
                                pyglet.window.key.S: parent.world.player.move_down,
                                pyglet.window.key.Q: parent.world.player.move_left,
                                pyglet.window.key.D: parent.world.player.move_right,
+                               pyglet.window.key.R: parent.world.player.inventory.slots[parent.world.player.inventory.active_slot].reload,
                                pyglet.window.key.UP: parent.world.instanciate_enemy,
                                pyglet.window.key.A: parent.world.player.inventory.slots[0].fire
                                }

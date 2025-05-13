@@ -5,7 +5,8 @@ class Inventory:
     def __init__(self, parent:world.Player | world.Enemy):
         self.parent = parent
         self.slots = [None]*4
-        self.slots[0] = Copperhead(self, 30, 25, 11, 20, 10, 20)
+        self.slots[0] = Copperhead(self, 30, 25, 11, 20, 10, 1000)
+        self.active_slot = 0
 
 
 class Bullet(world.WorldObject):
@@ -17,8 +18,9 @@ class Bullet(world.WorldObject):
         # updating  worldobject values :
 
         self.orientation = direction  - utils.radians(90)
-        direction_vector = utils.Utils.decompose_into_vector(30,utils.degrees(self.orientation))
+        direction_vector = utils.Utils.decompose_into_vector(100,utils.degrees(self.orientation))
         self.world_coords = [firing_position[0]+direction_vector[0],firing_position[1]+direction_vector[1]]
+        self.transparent = True
 
         self.acceleration = speed
         self.speed = utils.Utils.decompose_into_vector(speed,utils.degrees(self.orientation))
@@ -27,6 +29,9 @@ class Bullet(world.WorldObject):
         self.hitbox = world.Hitbox(self,"rectangle", (20,20))
         self.hitbox.render = True
         self.friction = 1
+
+        # DEBUG SETTINGS
+        self.speed = [0,0]
 
         self.parent.add_bullet_to_list(self)
         
@@ -47,13 +52,30 @@ class Weapon:
         self.active_magazine = self.magazines.dequeue()
         self.dispersion = dispersion
         self.shooting_range = shooting_range
-    
+
+        # Cooldown values
+        self.reload_cooldown = 0
+        self.firing_cooldown = 0
+    def tick(self):
+        self.reload_cooldown -= 1
+        self.firing_cooldown -= 1
+
+
     def reload(self):
-        self.active_magazine = self.magazines.dequeue()
+        if not self.magazines.is_empty():
+            if self.reload_cooldown <= 0:
+                self.active_magazine = self.magazines.dequeue()
+                self.reload_cooldown = 90
+                print("RELOAD")
+            else:
+                print("ON COOLDOWN")
+        else:
+            print("NOT ENOUGH MAGAZINES")
     
     def fire(self):
-        if self.active_magazine > 0:
+        if self.active_magazine > 0 and self.firing_cooldown <= 0:
             self.parent.parent.parent.instanciate_bullet((self.parent.parent.world_coords, self.parent.parent.orientation, 20, 50, self.shooting_range))
+            self.firing_cooldown = 4
             self.active_magazine -= 1
 
 

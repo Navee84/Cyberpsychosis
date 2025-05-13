@@ -223,20 +223,22 @@ class World:
         self.player.hitbox.render = True
         self.player.world_coords = [350,150]
 
-        self.debug_object = Enemy(self, "NCPD")
-        self.debug_object.hitbox = Hitbox(self.debug_object, "rectangle", (64,64))
-        self.debug_object.hitbox.render = True
-        self.debug_object.world_coords = [-350,-150]
+        self.enemy = Enemy(self, "NCPD")
+        self.enemy.hitbox = Hitbox(self.enemy, "rectangle", (64,64))
+        self.enemy.hitbox.render = True
+        self.enemy.world_coords = [-350,-150]
 
-        self.debug_object = Enemy(self, "NCPD")
-        self.debug_object.hitbox = Hitbox(self.debug_object, "rectangle", (64,64))
-        self.debug_object.hitbox.render = True
-        self.debug_object.world_coords = [260,-190]
+        self.enemy = Enemy(self, "NCPD")
+        self.enemy.hitbox = Hitbox(self.enemy, "rectangle", (64,64))
+        self.enemy.hitbox.render = True
+        self.enemy.world_coords = [260,-190]
 
         # DEBUG STUFF
         self.skip_to_end_button_sprite = utils.Utils.animated_sprite_load({"game/assets/textures/ui/play_button_1.png":None,"game/assets/textures/ui/play_button_2.png":None})
         self.skip_to_end_button = Button(self,(420, -260), (155,75),self.skip_to_end_button_sprite)
         # self.loading_screen = None
+
+        
         self.game_state = "Game"
 
     def game(self):
@@ -245,6 +247,7 @@ class World:
         self.player.render_values()
         self.player.face_mouse()
         self.enemy_think()
+        self.player.think()
         for bullet in self.bullet_list:
             bullet.range_limiter()
 
@@ -333,10 +336,10 @@ class World:
     # ENEMY
 
     def instanciate_enemy(self):
-        self.debug_object3 = Enemy(self, "NCPD")
-        self.debug_object3.hitbox = Hitbox(self.debug_object3, "triangle", (170,20))
-        self.debug_object3.hitbox.render = False
-        self.debug_object3.world_coords = [-50,140]
+        self.enemy = Enemy(self, "NCPD")
+        self.enemy.hitbox = Hitbox(self.enemy, "triangle", (170,20))
+        self.enemy.hitbox.render = False
+        self.enemy.world_coords = [-50,140]
 
     def add_to_enemy_list(self, object):
         '''
@@ -390,14 +393,20 @@ class World:
     def terminate(self,object):
         if object in self.objects_list:
             self.objects_list.remove(object)
-        if hasattr(self, 'debug_object') and self.debug_object is object:
-            self.debug_object.sprite.batch = None
-            self.debug_object = None
+        
+        if object in self.bullet_list:
+            self.bullet_list.remove(object)
+
+        if hasattr(self, 'enemy') and self.enemy is object:
+            self.enemy.sprite.batch = None
+            self.enemy = None
+
         if hasattr(self, 'environment') and self.environment is object:
             self.environment.sprite.batch = None
             self.environment = None
+
         if hasattr(self, 'bullet_object') and self.bullet_object is object:
-            self.bullet_list.remove(object)
+            print("KILLED BULLET")
             self.bullet_object.sprite.batch = None
             self.bullet_object = None
         gc.collect()
@@ -515,6 +524,10 @@ class WorldObject:
         self.max_speed = 0
         self.friction = 0.45 # Keep this value between 0 and 1 : 1 is no friction and 0 is maximum friction 
 
+        # Collisions related settings
+        self.transparent = False
+
+
         self.world_coords = [0,0]
         self.speed = [0,0]
 
@@ -579,6 +592,10 @@ class Player(WorldObject):
 
         # Inventory values:
         self.inventory = Inventory(self)
+    def think(self):
+        for weapon in self.inventory.slots:
+            if type(weapon) == Copperhead:
+                weapon.tick()
     
     def move_up(self):
         self.speed[1] = round(min(self.max_speed,self.speed[1]+self.acceleration),2)
@@ -812,16 +829,20 @@ class PhysicsEngine:
         # RESOLVING COLLISION
             collision_result = self.is_colliding(active_object.hitbox,tested_object.hitbox)
             if collision_result[0]:
-                active_object.hitbox.is_colliding = True
-                tested_object.hitbox.is_colliding = True
-    
-                if active_object.fixed == False:
-                    active_object.world_coords = (utils.Utils.translate(active_object.world_coords, collision_result[1]))
+                if active_object.transparent == False or tested_object.transparent == False:
 
 
-            else:
-                active_object.hitbox.is_colliding = False
-                tested_object.hitbox.is_colliding = False
+
+                    active_object.hitbox.is_colliding = True
+                    tested_object.hitbox.is_colliding = True
+        
+                    if active_object.fixed == False:
+                        active_object.world_coords = (utils.Utils.translate(active_object.world_coords, collision_result[1]))
+
+
+                else:
+                    active_object.hitbox.is_colliding = False
+                    tested_object.hitbox.is_colliding = False
         
 
 
