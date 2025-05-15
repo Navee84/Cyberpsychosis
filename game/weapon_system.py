@@ -6,7 +6,7 @@ class Inventory:
     def __init__(self, parent:world.Player | world.Enemy):
         self.parent = parent
         self.slots = [None]*4
-        self.slots[0] = Copperhead(self, 30, 25, 8, 20, 3, 1000)
+        self.slots[0] = Copperhead(self, 30, 25, 8, 20, 4, 1000)
         self.active_slot = 0
 
 class Weapon:

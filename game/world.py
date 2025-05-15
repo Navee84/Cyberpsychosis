@@ -73,8 +73,8 @@ class World:
         self.music_manager.play()
         self.music_manager.loop = True
 
-        self.title_image = PlainImage(self, "game/assets/textures/title.png",(0,275),0, (1,1),2)
-        self.background_image = PlainImage(self, "game/assets/textures/menu_image.png", (0,0), 0, (1,1), 0)
+        self.title_image = PlainImage(self, "game/assets/textures/title.png",(0,275),0, (1280/self.parent.rendering_engine.width,720/self.parent.rendering_engine.height),2)
+        self.background_image = PlainImage(self, "game/assets/textures/menu_image.png", (0,0), 0, (1280/self.parent.rendering_engine.width,720/self.parent.rendering_engine.height), 0)
         button_sprite = utils.Utils.animated_sprite_load({"game/assets/textures/ui/play_button_1.png":None, "game/assets/textures/ui/play_button_2.png":None})
         self.play_button = Button(self, (0,0), (150,75), button_sprite)
 
@@ -116,10 +116,10 @@ class World:
 
             case 3:
                 self.music_manager.loop = False
-                self.pre_game_quote1 = PlainImage(self, "game/assets/textures/ui/pre_game_quote1.png", (0,0), 0, (1,1), 2)
+                self.pre_game_quote1 = PlainImage(self, "game/assets/textures/ui/pre_game_quote1.png", (0,0), 0, (1280/self.parent.rendering_engine.width,720/self.parent.rendering_engine.height), 2)
                 self.pre_game_quote1.sprite.opacity = 0
 
-                self.pre_game_quote2 = PlainImage(self, "game/assets/textures/ui/pre_game_quote2.png", (0,0), 0, (1,1), 2)
+                self.pre_game_quote2 = PlainImage(self, "game/assets/textures/ui/pre_game_quote2.png", (0,0), 0, (1280/self.parent.rendering_engine.width,720/self.parent.rendering_engine.height), 2)
                 self.pre_game_quote2.sprite.opacity = 0
 
                 self.opacity = 0
@@ -281,10 +281,10 @@ class World:
                 self.music_manager.loop = False
                 self.music_manager.next_source()
 
-                self.post_game_quote1 = PlainImage(self,"game/assets/textures/ui/post_game_quote_1.png", (0,0), 0, (1,1), 2)
+                self.post_game_quote1 = PlainImage(self,"game/assets/textures/ui/post_game_quote_1.png", (0,0), 0, (1280/self.parent.rendering_engine.width,720/self.parent.rendering_engine.height), 2)
                 self.post_game_quote1.sprite.opacity = 0
 
-                self.post_game_quote2 = PlainImage(self,"game/assets/textures/ui/post_game_quote_2.png", (0,0), 0, (1,1), 2)
+                self.post_game_quote2 = PlainImage(self,"game/assets/textures/ui/post_game_quote_2.png", (0,0), 0, (1280/self.parent.rendering_engine.width,720/self.parent.rendering_engine.height), 2)
                 self.post_game_quote2.sprite.opacity = 0
 
 
@@ -423,6 +423,7 @@ class World:
     def update_camera_position(self):
         # Change this to change the camera focus
         self.camera.set_pos(self.player.world_coords)
+        # self.camera.set_pos((0,0))
 
 class PlainImage:
     def __init__(self, parent:World, sprite_path:str, position:tuple, orientation, size:tuple, layer):
@@ -443,8 +444,9 @@ class PlainImage:
         self.orientation = orientation
     
     def uptade_sprite(self):
-        self.sprite.x = (self.pos[0] + self.parent.parent.rendering_engine.window_center[0])*self.size[0]
-        self.sprite.y = (self.pos[1] + self.parent.parent.rendering_engine.window_center[1])*self.size[1]
+        self.sprite.
+        self.sprite.x = (self.pos[0] + self.parent.parent.rendering_engine.window_center[0])# *self.size[0]
+        self.sprite.y = (self.pos[1] + self.parent.parent.rendering_engine.window_center[1])# *self.size[1]
         self.sprite.orientation = utils.degrees(-self.orientation)
 
 class Button:
@@ -518,7 +520,7 @@ class WorldObject:
         # Defining all default values for a WorldObject
         self.sprite = utils.Utils.sprite_load(texture)
         self.orientation = 0 # 0 means facing right
-        self.fov = 1.5
+        self.fov = 1.3 # Game fov = 1.5
         self.hitbox = None
 
         # Movement values
@@ -599,6 +601,7 @@ class Player(WorldObject,Entity):
 
         # Inventory values:
         self.inventory = Inventory(self)
+
     def think(self):
         if self.parent.parent.input_manager.mouse_inputs_state["LMB"] == True:
             self.inventory.slots[self.inventory.active_slot].fire()
@@ -662,32 +665,100 @@ class Enemy(WorldObject, Entity):
             case "NCPD":
                 texture = "game/assets/textures/entity/default_texture.png"
                 self.brain_phase = 0
-                self.brain_speed = 5
+                self.brain_speed = 10
             case "MAXTAC":
                 texture = "game/assets/textures/entity/default_texture.png"
                 self.brain_phase = 0
                 self.brain_speed = 2
         
-        WorldObject.__init__(self, parent, texture, 2, False,)
+        WorldObject.__init__(self, parent, texture, 2, False)
+
+        # movement values:
+        self.acceleration = 3
+        self.max_speed = 10
+
+
+        self.distance_to_player = utils.Utils.distance(self.world_coords,self.parent.player.world_coords)
+
+        self.inventory = Inventory(self)
+
         self.parent.add_to_enemy_list(self)
     
     def think(self):
+        '''
+        Cette fonction gère l'ia des ennemis et les actionnent
+        '''
+        for weapon in self.inventory.slots:
+            if type(weapon) == Copperhead:
+                weapon.tick()
+
+
         if self.brain_phase == 0:
-            pass
-        
-        if utils.Utils.distance(self.world_coords,self.parent.player.world_coords) < 275:
             self.face_player()
+            if self.inventory.slots[self.inventory.active_slot].active_magazine <= 0:
+                self.inventory.slots[self.inventory.active_slot].reload()
+
+            self.distance_to_player = utils.Utils.distance(self.world_coords,self.parent.player.world_coords)
+            if self.distance_to_player < (self.inventory.slots[self.inventory.active_slot].shooting_range / 2) - 20:
+                self.shoot()
+            
+        if self.distance_to_player >= (self.inventory.slots[self.inventory.active_slot].shooting_range / 2) - 25 :
+            self.update_route("follow")
+
+        if self.distance_to_player <= (self.inventory.slots[self.inventory.active_slot].shooting_range / 3) :
+            self.update_route("flee")
+        
         self.brain_phase = (self.brain_phase + 1)%self.brain_speed
     
-    def update_route(self):
-        pass
+    def update_route(self,state:str):
+        '''
+        Utilise la trigonométrie pour déterminer dans quelle direction aller
+        Si cos() > 1/2 alors l'ennemi avance vers la droite
+        Si sin() > 1/2 alors l'ennemi vas vers le haut
+        et inversement
+        '''
+        angle_to_player = utils.Utils.get_angle(self.world_coords,self.parent.player.world_coords)
+        vertical_angle = utils.sin(angle_to_player)
+        horizontal_angle = utils.cos(angle_to_player)
+        if vertical_angle > 1/2:
+            if state == "follow":
+                self.move_up()
+            else:
+                self.move_down()
+        elif vertical_angle < -1/2:
+            if state == "follow":
+                self.move_down()
+            else:
+                self.move_up()
 
-
-    
+        if horizontal_angle > 1/2:
+            if state == "follow":
+                self.move_right()
+            else:
+                self.move_left()
+        elif horizontal_angle < -1/2:
+            if state == "follow":
+                self.move_left()
+            else:
+                self.move_right()
 
     def face_player(self):
         self.orientation = utils.Utils.get_angle(self.world_coords,self.parent.player.world_coords)
 
+    def shoot(self):
+        self.inventory.slots[self.inventory.active_slot].fire()
+
+    def move_up(self):
+        self.speed[1] = round(min(self.max_speed,self.speed[1]+self.acceleration),2)
+
+    def move_down(self):
+        self.speed[1] = round(max(-self.max_speed,self.speed[1]-self.acceleration),2)
+
+    def move_left(self):
+        self.speed[0] = round(max(-self.max_speed,self.speed[0]-self.acceleration),2)
+
+    def move_right(self):
+        self.speed[0] = round(min(self.max_speed,self.speed[0]+self.acceleration),2)
 
 
 
