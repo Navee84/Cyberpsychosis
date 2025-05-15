@@ -73,8 +73,8 @@ class World:
         self.music_manager.play()
         self.music_manager.loop = True
 
-        self.title_image = PlainImage(self, "game/assets/textures/title.png",(0,275),0, 2)
-        self.background_image = PlainImage(self, "game/assets/textures/menu_image.png", (0,0), 0, 0)
+        self.title_image = PlainImage(self, "game/assets/textures/title.png",(0,275),0, (1,1),2)
+        self.background_image = PlainImage(self, "game/assets/textures/menu_image.png", (0,0), 0, (1,1), 0)
         button_sprite = utils.Utils.animated_sprite_load({"game/assets/textures/ui/play_button_1.png":None, "game/assets/textures/ui/play_button_2.png":None})
         self.play_button = Button(self, (0,0), (150,75), button_sprite)
 
@@ -116,10 +116,10 @@ class World:
 
             case 3:
                 self.music_manager.loop = False
-                self.pre_game_quote1 = PlainImage(self, "game/assets/textures/ui/pre_game_quote1.png", (0,0), 0, 2)
+                self.pre_game_quote1 = PlainImage(self, "game/assets/textures/ui/pre_game_quote1.png", (0,0), 0, (1,1), 2)
                 self.pre_game_quote1.sprite.opacity = 0
 
-                self.pre_game_quote2 = PlainImage(self, "game/assets/textures/ui/pre_game_quote2.png", (0,0), 0, 2)
+                self.pre_game_quote2 = PlainImage(self, "game/assets/textures/ui/pre_game_quote2.png", (0,0), 0, (1,1), 2)
                 self.pre_game_quote2.sprite.opacity = 0
 
                 self.opacity = 0
@@ -281,10 +281,10 @@ class World:
                 self.music_manager.loop = False
                 self.music_manager.next_source()
 
-                self.post_game_quote1 = PlainImage(self,"game/assets/textures/ui/post_game_quote_1.png", (0,0), 0, 2)
+                self.post_game_quote1 = PlainImage(self,"game/assets/textures/ui/post_game_quote_1.png", (0,0), 0, (1,1), 2)
                 self.post_game_quote1.sprite.opacity = 0
 
-                self.post_game_quote2 = PlainImage(self,"game/assets/textures/ui/post_game_quote_2.png", (0,0), 0, 2)
+                self.post_game_quote2 = PlainImage(self,"game/assets/textures/ui/post_game_quote_2.png", (0,0), 0, (1,1), 2)
                 self.post_game_quote2.sprite.opacity = 0
 
 
@@ -353,8 +353,8 @@ class World:
 
     # BULLETS
 
-    def instanciate_bullet(self, parameters:tuple):
-        self.bullet_object = Bullet(self, parameters[0], parameters[1], parameters[2], parameters[3], parameters[4])
+    def instanciate_bullet(self, firing_position:tuple, direction:float, speed:float, damage:int, shooting_range:int, dispersion:float):
+        self.bullet_object = Bullet(self, firing_position, direction, speed, damage, shooting_range, dispersion)
     
     def add_bullet_to_list(self, object):
         '''
@@ -425,14 +425,16 @@ class World:
         self.camera.set_pos(self.player.world_coords)
 
 class PlainImage:
-    def __init__(self, parent:World, sprite_path:str, position:tuple, orientation, layer):
+    def __init__(self, parent:World, sprite_path:str, position:tuple, orientation, size:tuple, layer):
         self.parent = parent
         self.sprite = utils.Utils.sprite_load(sprite_path)
         self.pos = position
+        self.size = size
         self.orientation = orientation
-        self.parent.add_to_batch(self,layer)
+
 
         self.uptade_sprite()
+        self.parent.add_to_batch(self,layer)
     
     def set_position(self,coords:tuple):
         self.pos = coords
@@ -441,8 +443,8 @@ class PlainImage:
         self.orientation = orientation
     
     def uptade_sprite(self):
-        self.sprite.x = self.pos[0] + self.parent.parent.rendering_engine.window_center[0]
-        self.sprite.y = self.pos[1] + self.parent.parent.rendering_engine.window_center[1]
+        self.sprite.x = (self.pos[0] + self.parent.parent.rendering_engine.window_center[0])*self.size[0]
+        self.sprite.y = (self.pos[1] + self.parent.parent.rendering_engine.window_center[1])*self.size[1]
         self.sprite.orientation = utils.degrees(-self.orientation)
 
 class Button:
@@ -516,7 +518,7 @@ class WorldObject:
         # Defining all default values for a WorldObject
         self.sprite = utils.Utils.sprite_load(texture)
         self.orientation = 0 # 0 means facing right
-        self.fov = 2
+        self.fov = 1.5
         self.hitbox = None
 
         # Movement values
@@ -582,9 +584,14 @@ class WorldObject:
             case _:
                 return None
 
-class Player(WorldObject):
+class Entity:
+    def __init__(self):
+        self.health = 100
+
+class Player(WorldObject,Entity):
     def __init__(self, parent, texture:str, group:int):
-        super().__init__(parent, texture, group, False)
+        WorldObject.__init__(self, parent, texture, group, False)
+        Entity.__init__(self)
 
         # movement values:
         self.acceleration = 2
@@ -593,6 +600,8 @@ class Player(WorldObject):
         # Inventory values:
         self.inventory = Inventory(self)
     def think(self):
+        if self.parent.parent.input_manager.mouse_inputs_state["LMB"] == True:
+            self.inventory.slots[self.inventory.active_slot].fire()
         for weapon in self.inventory.slots:
             if type(weapon) == Copperhead:
                 weapon.tick()
@@ -641,8 +650,9 @@ class Player(WorldObject):
         self.parent.parent.rendering_engine.debug_render_queue.enqueue(orientation_label)
         self.parent.parent.rendering_engine.debug_render_queue.enqueue(mouse_pos_label)
 
-class Enemy(WorldObject):
+class Enemy(WorldObject, Entity):
     def __init__(self, parent:World, preset:str):
+        Entity.__init__(self)
         self.parent = parent
         allowed_presets = ("NCPD","MAXTAC")
         if not preset in allowed_presets:
@@ -658,7 +668,7 @@ class Enemy(WorldObject):
                 self.brain_phase = 0
                 self.brain_speed = 2
         
-        super().__init__(parent, texture, 2, False)
+        WorldObject.__init__(self, parent, texture, 2, False,)
         self.parent.add_to_enemy_list(self)
     
     def think(self):
@@ -826,8 +836,11 @@ class PhysicsEngine:
         while not candidate_queue.is_empty():
             tested_object = candidate_queue.dequeue()
 
+            collision_result = (False,None)
+            if type(tested_object) != Bullet: # Avoid useless calculations between bullets
+                collision_result = self.is_colliding(active_object.hitbox,tested_object.hitbox)
+
         # RESOLVING COLLISION
-            collision_result = self.is_colliding(active_object.hitbox,tested_object.hitbox)
             if collision_result[0]:
                 if active_object.transparent == False or tested_object.transparent == False:
 
@@ -835,9 +848,14 @@ class PhysicsEngine:
 
                     active_object.hitbox.is_colliding = True
                     tested_object.hitbox.is_colliding = True
+                    if active_object.fixed == True:
+                        return None
         
-                    if active_object.fixed == False:
-                        active_object.world_coords = (utils.Utils.translate(active_object.world_coords, collision_result[1]))
+                    if type(active_object) == Bullet:
+                        tested_object.health -= active_object.damage
+                        active_object.suicide()
+
+                    active_object.world_coords = (utils.Utils.translate(active_object.world_coords, collision_result[1]))
 
 
                 else:

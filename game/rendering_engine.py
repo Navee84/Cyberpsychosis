@@ -7,7 +7,7 @@ from main import *
 
 class RenderingEngine(pyglet.window.Window):
     def __init__(self, parent:Main):
-        super().__init__(caption="prototype window", width = 1280, height = 720)
+        super().__init__(caption="prototype window", fullscreen = True)
 
         cursor_image = pyglet.image.load("game/assets/textures/cursor/arrow.png")
         cursor = pyglet.window.ImageMouseCursor(cursor_image, 3, 21)

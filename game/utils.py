@@ -127,6 +127,8 @@ class MusicManager(pyglet.media.Player):
 
         for music in os.listdir("game/assets/musics"):
             source = pyglet.media.load("game/assets/musics/"+music)
+
+            # shaping key name
             name = music.lower()
             name = name.replace(" ","_")
             name = name[:len(music)-4]
@@ -134,4 +136,25 @@ class MusicManager(pyglet.media.Player):
             self.music_dict[name] = source
 
         print(self.music_dict)
+
+class SoundManager(pyglet.media.Player):
+    def __init__(self, sound_pack_path:str):
+        super().__init__()
+
+        self.sound_list = []
+
+        for sound in os.listdir(sound_pack_path):
+            source = pyglet.media.StaticSource(pyglet.media.load(sound_pack_path+"/"+sound))
+
+            # name = sound.lower()
+            # name = name.replace(" ","_")
+            # name = name[:len(sound)-4]
+
+            self.sound_list.append(source)
+
+    def play_sound(self, sound_index):
+        self.next_source()
+        self.queue(self.sound_list[sound_index])
+        self.play()
+
         
