@@ -7,6 +7,7 @@ class World:
     def __init__(self,parent:Main):
         self.parent = parent
         self.music_manager = utils.MusicManager()
+        self.wave_sound_player = utils.SoundManager("game/assets/sounds/misc")
         self.objects_list = []
         self.enemy_list = []
         self.bullet_list = []
@@ -14,6 +15,12 @@ class World:
         self.game_state = "MainMenu"
         self.button_click = False
         self.can_skip = False
+        self.cahos = 0
+        self.enemy_spawn_locations = (
+            ((860,-590), (475,-770)),
+            ((-740,-1100), (-430,-900)),
+            ((-850,1160),(-480,1400))
+        )
 
         # DEVELOPEMENT VALUES
         self.music_manager.volume = 0 # DEVELOPEMENT ONLY
@@ -73,8 +80,8 @@ class World:
         self.music_manager.play()
         self.music_manager.loop = True
 
-        self.title_image = PlainImage(self, "game/assets/textures/title.png",(0,275),0, (1280/self.parent.rendering_engine.width,720/self.parent.rendering_engine.height),2)
-        self.background_image = PlainImage(self, "game/assets/textures/menu_image.png", (0,0), 0, (1280/self.parent.rendering_engine.width,720/self.parent.rendering_engine.height), 0)
+        self.title_image = PlainImage(self, "game/assets/textures/title.png",(0,275),0, (self.parent.rendering_engine.width/1280,self.parent.rendering_engine.height/720),2)
+        self.background_image = PlainImage(self, "game/assets/textures/menu_image.png", (0,0), 0, (self.parent.rendering_engine.width/1280,self.parent.rendering_engine.height/720), 0)
         button_sprite = utils.Utils.animated_sprite_load({"game/assets/textures/ui/play_button_1.png":None, "game/assets/textures/ui/play_button_2.png":None})
         self.play_button = Button(self, (0,0), (150,75), button_sprite)
 
@@ -116,10 +123,10 @@ class World:
 
             case 3:
                 self.music_manager.loop = False
-                self.pre_game_quote1 = PlainImage(self, "game/assets/textures/ui/pre_game_quote1.png", (0,0), 0, (1280/self.parent.rendering_engine.width,720/self.parent.rendering_engine.height), 2)
+                self.pre_game_quote1 = PlainImage(self, "game/assets/textures/ui/pre_game_quote1.png", (0,0), 0, (self.parent.rendering_engine.width/1280,self.parent.rendering_engine.height/720), 2)
                 self.pre_game_quote1.sprite.opacity = 0
 
-                self.pre_game_quote2 = PlainImage(self, "game/assets/textures/ui/pre_game_quote2.png", (0,0), 0, (1280/self.parent.rendering_engine.width,720/self.parent.rendering_engine.height), 2)
+                self.pre_game_quote2 = PlainImage(self, "game/assets/textures/ui/pre_game_quote2.png", (0,0), 0, (self.parent.rendering_engine.width/1280,self.parent.rendering_engine.height/720), 2)
                 self.pre_game_quote2.sprite.opacity = 0
 
                 self.opacity = 0
@@ -159,8 +166,8 @@ class World:
             self.music_manager.next_source()
         
         self.instruction_button = None
-        # self.music_manager.next_source()
-        # self.instanciate_game()
+        self.music_manager.next_source()
+        self.instanciate_game()
 
         
         '''
@@ -173,41 +180,44 @@ class World:
         '''
 
 
-        if self.music_manager.source == self.music_manager.music_dict["pre_game_2"]:
-            return None
+        # if self.music_manager.source == self.music_manager.music_dict["pre_game_2"]:
+        #     return None
 
-        if self.opacity < 255 and self.fade_out == False:
-            self.opacity += 1
+        # if self.opacity < 255 and self.fade_out == False:
+        #     self.opacity += 1
         
-        if self.opacity == 255:
-            self.fade_out = True
+        # if self.opacity == 255:
+        #     self.fade_out = True
 
-        if self.opacity > 0 and self.fade_out == True:
-            self.opacity -= 2
+        # if self.opacity > 0 and self.fade_out == True:
+        #     self.opacity -= 2
         
-        if self.quote_sentence > 2 and self.music_manager.source == None or self.can_skip == True:
-            self.instanciate_game()
+        # if self.quote_sentence > 2 and self.music_manager.source == None or self.can_skip == True:
+        #     self.instanciate_game()
 
-        if self.opacity <= 0 and self.fade_out == True:
-            self.quote_sentence += 1
-            self.fade_out = False
-            self.opacity = 0
+        # if self.opacity <= 0 and self.fade_out == True:
+        #     self.quote_sentence += 1
+        #     self.fade_out = False
+        #     self.opacity = 0
 
 
 
-        if self.quote_sentence == 1:
-            self.pre_game_quote1.sprite.opacity = self.opacity
-        elif self.quote_sentence == 2:
-            self.pre_game_quote2.sprite.opacity = self.opacity
+        # if self.quote_sentence == 1:
+        #     self.pre_game_quote1.sprite.opacity = self.opacity
+        # elif self.quote_sentence == 2:
+        #     self.pre_game_quote2.sprite.opacity = self.opacity
         
         
 
     def instanciate_game(self):
 
         # Clear main menu elements
-        self.tite_image = None
+        self.title_image = None
         self.play_button = None
         self.background_image = None
+
+        # Game values
+        self.cahos = 0
 
         # Instanciate game elements
         self.empty_music_queue()
@@ -223,15 +233,6 @@ class World:
         self.player.hitbox.render = True
         self.player.world_coords = [350,150]
 
-        self.enemy = Enemy(self, "NCPD")
-        self.enemy.hitbox = Hitbox(self.enemy, "rectangle", (64,64))
-        self.enemy.hitbox.render = True
-        self.enemy.world_coords = [-350,-150]
-
-        self.enemy = Enemy(self, "NCPD")
-        self.enemy.hitbox = Hitbox(self.enemy, "rectangle", (64,64))
-        self.enemy.hitbox.render = True
-        self.enemy.world_coords = [260,-190]
 
         # DEBUG STUFF
         self.skip_to_end_button_sprite = utils.Utils.animated_sprite_load({"game/assets/textures/ui/play_button_1.png":None,"game/assets/textures/ui/play_button_2.png":None})
@@ -244,21 +245,33 @@ class World:
     def game(self):
         self.update_objects_positions()
         self.update_camera_position()
+
         self.player.render_values()
-        self.player.face_mouse()
+
         self.enemy_think()
+
+        self.player.face_mouse()
         self.player.think()
         for bullet in self.bullet_list:
             bullet.range_limiter()
+
+        if self.cahos == 1:
+            self.instanciate_enemy()
+            self.wave_sound_player.play_sound()
+            self.cahos += 15
+
+        elif len(self.enemy_list) == 0 and self.cahos > 10:
+            self.wave_sound_player.play_sound()
+            for i in range(self.cahos//10):
+                self.instanciate_enemy()
+
+
+
 
 
         if self.skip_to_end_button.is_clicked((self.parent.rendering_engine._mouse_x, self.parent.rendering_engine._mouse_y)):
             self.instanciate_post_game(1)
 
-
-
-    def debug_instanciate_post_game(self):
-        self.instanciate_post_game(1)
 
     def instanciate_post_game(self, phase):
         print("POSTGAME")
@@ -281,10 +294,10 @@ class World:
                 self.music_manager.loop = False
                 self.music_manager.next_source()
 
-                self.post_game_quote1 = PlainImage(self,"game/assets/textures/ui/post_game_quote_1.png", (0,0), 0, (1280/self.parent.rendering_engine.width,720/self.parent.rendering_engine.height), 2)
+                self.post_game_quote1 = PlainImage(self,"game/assets/textures/ui/post_game_quote_1.png", (0,0), 0, (self.parent.rendering_engine.width/1280,self.parent.rendering_engine.height/720), 2)
                 self.post_game_quote1.sprite.opacity = 0
 
-                self.post_game_quote2 = PlainImage(self,"game/assets/textures/ui/post_game_quote_2.png", (0,0), 0, (1280/self.parent.rendering_engine.width,720/self.parent.rendering_engine.height), 2)
+                self.post_game_quote2 = PlainImage(self,"game/assets/textures/ui/post_game_quote_2.png", (0,0), 0, (self.parent.rendering_engine.width/1280,self.parent.rendering_engine.height/720), 2)
                 self.post_game_quote2.sprite.opacity = 0
 
 
@@ -337,9 +350,10 @@ class World:
 
     def instanciate_enemy(self):
         self.enemy = Enemy(self, "NCPD")
-        self.enemy.hitbox = Hitbox(self.enemy, "triangle", (170,20))
+        self.enemy.hitbox = Hitbox(self.enemy, "rectangle", (64,64))
         self.enemy.hitbox.render = False
-        self.enemy.world_coords = [-50,140]
+        self.enemy.world_coords = self.get_enemy_spawn_location()
+        self.cahos += 1
 
     def add_to_enemy_list(self, object):
         '''
@@ -355,12 +369,12 @@ class World:
 
     def instanciate_bullet(self, firing_position:tuple, direction:float, speed:float, damage:int, shooting_range:int, dispersion:float):
         self.bullet_object = Bullet(self, firing_position, direction, speed, damage, shooting_range, dispersion)
+        self.cahos += 1
     
     def add_bullet_to_list(self, object):
         '''
         Object must be Bullet type
         '''
-
         self.bullet_list.append(object)
 
 
@@ -386,6 +400,15 @@ class World:
                 return self.parent.rendering_engine.batch_layer_loadingscreen
             case _:
                 return None
+    
+    def get_enemy_spawn_location(self) -> list:
+        area = self.enemy_spawn_locations[randint(0,len(self.enemy_spawn_locations)-1)]
+        print(area)
+
+        location_x = randint(min(area[0][0],area[1][0]),max(area[0][0],area[1][0]))
+        location_y = randint(min(area[0][1],area[1][1]),max(area[0][1],area[1][1]))
+
+        return [location_x,location_y]
 
     def add_to_object_list(self, object):
         self.objects_list.append(object)
@@ -397,6 +420,9 @@ class World:
         if object in self.bullet_list:
             self.bullet_list.remove(object)
 
+        if object in self.enemy_list:
+            self.enemy_list.remove(object)
+
         if hasattr(self, 'enemy') and self.enemy is object:
             self.enemy.sprite.batch = None
             self.enemy = None
@@ -406,7 +432,6 @@ class World:
             self.environment = None
 
         if hasattr(self, 'bullet_object') and self.bullet_object is object:
-            print("KILLED BULLET")
             self.bullet_object.sprite.batch = None
             self.bullet_object = None
         gc.collect()
@@ -444,7 +469,7 @@ class PlainImage:
         self.orientation = orientation
     
     def uptade_sprite(self):
-        self.sprite.
+        self.sprite.scale_x, self.sprite.scale_y = (self.size)
         self.sprite.x = (self.pos[0] + self.parent.parent.rendering_engine.window_center[0])# *self.size[0]
         self.sprite.y = (self.pos[1] + self.parent.parent.rendering_engine.window_center[1])# *self.size[1]
         self.sprite.orientation = utils.degrees(-self.orientation)
@@ -590,6 +615,19 @@ class Entity:
     def __init__(self):
         self.health = 100
 
+    def move_up(self):
+        self.speed[1] = round(min(self.max_speed,self.speed[1]+self.acceleration),2)
+
+    def move_down(self):
+        self.speed[1] = round(max(-self.max_speed,self.speed[1]-self.acceleration),2)
+
+    def move_left(self):
+        self.speed[0] = round(max(-self.max_speed,self.speed[0]-self.acceleration),2)
+
+    def move_right(self):
+        self.speed[0] = round(min(self.max_speed,self.speed[0]+self.acceleration),2)
+
+
 class Player(WorldObject,Entity):
     def __init__(self, parent, texture:str, group:int):
         WorldObject.__init__(self, parent, texture, group, False)
@@ -602,24 +640,18 @@ class Player(WorldObject,Entity):
         # Inventory values:
         self.inventory = Inventory(self)
 
+        # Cooldown values:
+        self.dash_cooldown = 0
+
     def think(self):
         if self.parent.parent.input_manager.mouse_inputs_state["LMB"] == True:
             self.inventory.slots[self.inventory.active_slot].fire()
         for weapon in self.inventory.slots:
             if type(weapon) == Copperhead:
                 weapon.tick()
+        
+        self.dash_cooldown -= 1
     
-    def move_up(self):
-        self.speed[1] = round(min(self.max_speed,self.speed[1]+self.acceleration),2)
-
-    def move_down(self):
-        self.speed[1] = round(max(-self.max_speed,self.speed[1]-self.acceleration),2)
-
-    def move_left(self):
-        self.speed[0] = round(max(-self.max_speed,self.speed[0]-self.acceleration),2)
-
-    def move_right(self):
-        self.speed[0] = round(min(self.max_speed,self.speed[0]+self.acceleration),2)
 
     def face_mouse(self):
         angle = utils.Utils.get_angle(self.get_screen_pos(),(self.parent.parent.rendering_engine._mouse_x,self.parent.parent.rendering_engine._mouse_y))
@@ -652,11 +684,19 @@ class Player(WorldObject,Entity):
         self.parent.parent.rendering_engine.debug_render_queue.enqueue(speed_label)
         self.parent.parent.rendering_engine.debug_render_queue.enqueue(orientation_label)
         self.parent.parent.rendering_engine.debug_render_queue.enqueue(mouse_pos_label)
+    
+    def dash(self):
+        if self.dash_cooldown <= 0:
+            self.speed[0] *= 1.5
+            self.speed[1] *= 1.5
+
+        self.dash_cooldown = 45
 
 class Enemy(WorldObject, Entity):
     def __init__(self, parent:World, preset:str):
         Entity.__init__(self)
         self.parent = parent
+
         allowed_presets = ("NCPD","MAXTAC")
         if not preset in allowed_presets:
             raise TypeError(f"{utils.Utils.console_prefix("error")} enemy preset : '{preset}' is not a valid preset")
@@ -677,17 +717,28 @@ class Enemy(WorldObject, Entity):
         self.acceleration = 3
         self.max_speed = 10
 
+        self.death_sound_player = utils.SoundManager("game/assets/sounds/enemy_death")
+
 
         self.distance_to_player = utils.Utils.distance(self.world_coords,self.parent.player.world_coords)
 
         self.inventory = Inventory(self)
 
         self.parent.add_to_enemy_list(self)
+
+        # DEBUG
+        self.braindead = False
     
     def think(self):
         '''
         Cette fonction gère l'ia des ennemis et les actionnent
         '''
+        if self.health <= 0:
+            self.die()
+
+        if self.braindead:
+            return None
+        
         for weapon in self.inventory.slots:
             if type(weapon) == Copperhead:
                 weapon.tick()
@@ -705,7 +756,7 @@ class Enemy(WorldObject, Entity):
         if self.distance_to_player >= (self.inventory.slots[self.inventory.active_slot].shooting_range / 2) - 25 :
             self.update_route("follow")
 
-        if self.distance_to_player <= (self.inventory.slots[self.inventory.active_slot].shooting_range / 3) :
+        if self.distance_to_player <= (self.inventory.slots[self.inventory.active_slot].shooting_range / 3) or self.inventory.slots[self.inventory.active_slot].active_magazine <= 0:
             self.update_route("flee")
         
         self.brain_phase = (self.brain_phase + 1)%self.brain_speed
@@ -747,18 +798,11 @@ class Enemy(WorldObject, Entity):
 
     def shoot(self):
         self.inventory.slots[self.inventory.active_slot].fire()
-
-    def move_up(self):
-        self.speed[1] = round(min(self.max_speed,self.speed[1]+self.acceleration),2)
-
-    def move_down(self):
-        self.speed[1] = round(max(-self.max_speed,self.speed[1]-self.acceleration),2)
-
-    def move_left(self):
-        self.speed[0] = round(max(-self.max_speed,self.speed[0]-self.acceleration),2)
-
-    def move_right(self):
-        self.speed[0] = round(min(self.max_speed,self.speed[0]+self.acceleration),2)
+    
+    def die(self):
+        self.death_sound_player.play_sound()
+        print("NEW CAHOS :", self.parent.cahos)
+        self.suicide()
 
 
 
@@ -776,9 +820,6 @@ class Camera:
 
 
 
-
-
-
 class Hitbox:
     def __init__(self, parent:WorldObject, preset:str, dimensions:tuple):
         self.parent = parent
@@ -786,7 +827,7 @@ class Hitbox:
         # Vérifie que le preset entré en argument est dans la liste des presets disponibles
         allowed_presets = ("rectangle","triangle","circle","hexagon")
         if not preset in allowed_presets:
-            raise TypeError(f"{utils.Utils.console_prefix_error} preset '{preset}' is not a valid preset")
+            raise TypeError(f"{utils.Utils.console_prefix("error")} preset '{preset}' is not a valid preset")
         
         self.dimensions = dimensions
         self.preset = preset
@@ -800,6 +841,9 @@ class Hitbox:
         self.update()
 
     def update(self):
+        '''
+        Updates hitbox coordinates
+        '''
         color = (75,100,255)
         if self.is_colliding:
             color = (255,100,75)
@@ -823,6 +867,9 @@ class Hitbox:
                                                                                                             color
                                                                                                             ))
     def preset_rectangle(self,height, width):
+        '''
+        Returns rectangle shaped coordinates for the hitbox
+        '''
         top_left = (self.parent.world_coords[0] - width//2 , self.parent.world_coords[1] + height//2)
         top_right = (self.parent.world_coords[0] + width//2, self.parent.world_coords[1] + height//2)
 
@@ -838,6 +885,9 @@ class Hitbox:
         return rotated_list
     
     def preset_triangle(self, width, down_offset):
+        '''
+        Returns triangle shaped coordinates for the hitbox
+        '''
         top = (self.parent.world_coords[0], self.parent.world_coords[1] + int((2/3)*((3**0.5)*(width//2))) - down_offset)
 
         bottom_middle = (self.parent.world_coords[0],self.parent.world_coords[1] - int((1/3)*((3**0.5)*(width//2))) - down_offset)
@@ -1009,11 +1059,17 @@ class PhysicsEngine:
 
 
     def get_normals(self, point_a:tuple, point_b:tuple)-> tuple:
+        '''
+        self explanatory, math stuff
+        '''
         # simple formule de vecteur normal
         return (-1*(point_b[1]-point_a[1]), point_b[0]-point_a[0])
         
     
     def get_scalar_coefficient(self, vector:tuple, point:tuple):
+        '''
+        self explanatory, math stuff
+        '''
         k = (vector[0]*point[0] + vector[1]*point[1]) / (vector[0]**2 + vector[1]**2)
         rounded = round(k,3)
         return rounded

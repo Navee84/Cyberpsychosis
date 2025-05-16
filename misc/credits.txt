@@ -1,2 +1,8 @@
 cursor : https://vsthemes.org/en/cursors/50966-cyberpunk-2077.html
 font : https://fonts.google.com/specimen/Play
+sounds effects : https://www.youtube.com/watch?v=Q-im39LTVqk
+reload :
+https://www.101soundboards.com/sounds/609785-hk416-reload
+
+shoot :
+https://www.101soundboards.com/sounds/609848-famas

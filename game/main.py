@@ -27,8 +27,8 @@ class InputManager:
                                pyglet.window.key.S: parent.world.player.move_down,
                                pyglet.window.key.Q: parent.world.player.move_left,
                                pyglet.window.key.D: parent.world.player.move_right,
-                               pyglet.window.key.R: parent.world.player.inventory.slots[parent.world.player.inventory.active_slot].reload,
-                               pyglet.window.key.UP: parent.world.instanciate_enemy
+                               pyglet.window.key.LSHIFT: parent.world.player.dash,
+                               pyglet.window.key.R: parent.world.player.inventory.slots[parent.world.player.inventory.active_slot].reload
                                }
         self.mouse_inputs_state = {"LMB" : False,
                                    "RMB" : False,

@@ -2,6 +2,7 @@ import pyglet
 import pyglet.window.mouse
 from math import cos, sin, atan, degrees, radians, atan2
 import os
+from random import randint
 
 class Utils:
     def console_prefix(state):
@@ -137,7 +138,7 @@ class MusicManager(pyglet.media.Player):
 
         print(self.music_dict)
 
-class SoundManager(pyglet.media.Player):
+class SoundManager():
     def __init__(self, sound_pack_path:str):
         super().__init__()
 
@@ -152,9 +153,7 @@ class SoundManager(pyglet.media.Player):
 
             self.sound_list.append(source)
 
-    def play_sound(self, sound_index):
-        self.next_source()
-        self.queue(self.sound_list[sound_index])
-        self.play()
+    def play_sound(self):
+        self.sound_list[randint(0,len(self.sound_list)-1)].play()
 
         

@@ -1,0 +1,6 @@
+reload :
+https://www.101soundboards.com/sounds/609785-hk416-reload
+
+shoot :
+https://www.101soundboards.com/sounds/609848-famas
+

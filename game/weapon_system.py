@@ -13,7 +13,9 @@ class Weapon:
     def __init__(self, parent:Inventory, magazine_capacity:int, magazines_number:int, fire_rate:int, damage:int, dispersion:int, shooting_range:int):
         self.parent = parent
 
-        self.sound_player = utils.SoundManager("game/assets/sounds/weapons/shoot")
+        self.fire_sound_player = utils.SoundManager("game/assets/sounds/weapons/shoot")
+        self.dry_fire_sound_player = utils.SoundManager("game/assets/sounds/weapons/dry fire")
+        self.reload_sound_player = utils.SoundManager("game/assets/sounds/weapons/reload")
 
         # weapon specific caracteristics
         self.mag_capacity = magazine_capacity
@@ -28,31 +30,47 @@ class Weapon:
         self.shooting_range = shooting_range
 
         # Cooldown values
-        self.reload_cooldown = 0
+        self.reload_input_cooldown = 0
         self.firing_cooldown = 0
+        self.reloading_time = 0
+        self.reloading = False
 
 
     def tick(self):
-        self.reload_cooldown -= 1
+        self.reload_input_cooldown -= 1
         self.firing_cooldown -= 1
+        self.reloading_time -= 1
+
+        if self.reloading == True and self.reloading_time <= 0:
+            self.active_magazine = self.magazines.dequeue()
+            self.reloading = False
+            print("RELOADED")
 
     def reload(self):
+
         if not self.magazines.is_empty():
-            if self.reload_cooldown <= 0:
-                self.active_magazine = self.magazines.dequeue()
-                self.reload_cooldown = 90
-                print("RELOAD")
+            if self.reload_input_cooldown <= 0 :
+                self.reloading = True
+                self.reloading_time = 110
+                self.reload_input_cooldown = 150
+                self.active_magazine = 0
+                self.reload_sound_player.play_sound()
+                print("RELOADING")
             else:
                 print("ON COOLDOWN")
         else:
             print("NOT ENOUGH MAGAZINES")
     
     def fire(self):
+        if self.active_magazine <= 0 and self.firing_cooldown <= 0 and self.reloading == False:
+            self.dry_fire_sound_player.play_sound()
+            self.firing_cooldown = round(90*(1/self.fire_rate))
+
         if self.active_magazine > 0 and self.firing_cooldown <= 0:
-            self.parent.parent.parent.instanciate_bullet(self.parent.parent.world_coords, self.parent.parent.orientation, 25, 50, self.shooting_range, utils.radians(randint(-self.dispersion,self.dispersion)))
+            self.parent.parent.parent.instanciate_bullet(self.parent.parent.world_coords, self.parent.parent.orientation, 25, self.damage, self.shooting_range, utils.radians(randint(-self.dispersion,self.dispersion)))
             self.firing_cooldown = round(45*(1/self.fire_rate))
             self.active_magazine -= 1
-            self.sound_player.play_sound(randint(0,len(self.sound_player.sound_list)-1))
+            self.fire_sound_player.play_sound()
 
 class Bullet(world.WorldObject):
     def __init__(self, parent, firing_position:tuple, direction:float, speed:float, damage:int, shooting_range:int, dispersion:float):
@@ -74,7 +92,6 @@ class Bullet(world.WorldObject):
         self.damage = damage
         self.range = range
         self.hitbox = world.Hitbox(self,"rectangle", (10,25))
-        self.hitbox.render = True
         self.friction = 1
 
         # DEBUG SETTINGS
