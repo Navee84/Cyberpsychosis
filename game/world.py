@@ -226,13 +226,13 @@ class World:
         self.music_manager.play()
         self.music_manager.loop = True
 
-        self.environment = Environment(self,"game/assets/textures/environment/map_placeholder.png", 0)
+        self.environment = Environment(self,"game/assets/textures/environment/map.png", 0)
         self.environment.fixed = True
 
         self.player.show()
         self.add_to_batch(self.player.inventory.slots[0],2)
         self.player.hitbox = Hitbox(self.player, "rectangle", (64,64))
-        self.player.world_coords = [350,150]
+        self.player.world_coords = [170,-1290]
 
 
         # DEBUG STUFF
@@ -641,8 +641,8 @@ class Player(WorldObject,Entity):
         Entity.__init__(self)
 
         # movement values:
-        self.acceleration = 2
-        self.max_speed = 6
+        self.acceleration = 5 #set 2 for the game
+        self.max_speed = 26 # set 6 for the game
 
         # Inventory values:
         self.inventory = Inventory(self)
@@ -735,7 +735,7 @@ class Enemy(WorldObject, Entity):
         self.parent.add_to_enemy_list(self)
 
         # DEBUG
-        self.braindead = False
+        self.braindead = True
     
     def think(self):
         '''
@@ -820,13 +820,24 @@ class Environment(WorldObject): # UNIQUE OBJECT, DEFiNE THE BACKGROUND ENVIRONME
         self.hitbox_list = []
 
         self.hitbox_values=[
-            ("rectangle", (200,200),(-200,-200)),
-            ("rectangle", (100,100),(0,0))
-        ]
+            ("rectangle", (-978,285),(-1400,1500), 0, "auto"), # top left corner [DONE]
+            ("rectangle", (-830,-190),(-1400,-1800), 0, "auto"), # bottom left corner [DONE]
+            ("rectangle", (8,1600),(357,778), 0, "auto"), # top right corner [DONE]
+            ("rectangle", (-388,1045),(-135,340), 0, "auto"), # middle top seethrough [DONE]
+            ("triangle", (175,18), (-320,320), 0, "manual"), # middle top seethrough [DONE]
+            ("rectangle", (260,25), (-260,298), -68, "manual"), # middle top seethrough [DONE]
 
+            # NCPD BARRICADES
+            ("rectangle", (-1025,290),(-1155,-185), 0, "auto"), # top left barricade [DONE]
+            ("rectangle", (440,87), (172, 377), 46, "manual"), #top right barricade
+            ("rectangle", (-978,1330),(8,1600), 0, "auto") # top middle barricade [DONE]
+        ]
+        # game.world.environment.hitbox_list[7].dimensions
         for elem in self.hitbox_values:
-            print(elem[2])
-            self.hitbox_list.append(Hitbox(self,elem[0],elem[1],elem[2]))
+            if elem[4] == "auto":
+                self.hitbox_list.append(Hitbox(self,elem[0], utils.Utils.get_dimensions(elem[1],elem[2]), utils.Utils.get_rectangle_center(elem[1],elem[2]),elem[3]))
+            else:
+                self.hitbox_list.append(Hitbox(self, elem[0], elem[1], elem[2], utils.radians(elem[3])))
 
 class Camera:
     def __init__(self, parent):
@@ -838,14 +849,15 @@ class Camera:
 
 
 class Hitbox:
-    def __init__(self, parent:WorldObject, preset:str, dimensions:tuple, *origin):
+    def __init__(self, parent:WorldObject, preset:str, dimensions:tuple, *args):
         self.parent = parent
         self.default_origin = False
 
-        if not origin:
+        if not args:
             self.default_origin = True
         else:
-            self.origin = origin[0]
+            self.origin = args[0]
+            self.orientation = args[1]
             print(self.origin)
 
         # Vérifie que le preset entré en argument est dans la liste des presets disponibles
@@ -870,6 +882,7 @@ class Hitbox:
         '''
         if self.default_origin:
             self.origin = self.parent.world_coords
+            self.orientation = self.parent.orientation
             
         color = (75,100,255)
         if self.is_colliding:
@@ -907,7 +920,7 @@ class Hitbox:
 
         rotated_list = []
         for point in point_list:
-            rotated_list.append(utils.Utils.apply_rotation(self.origin,point,self.parent.orientation))
+            rotated_list.append(utils.Utils.apply_rotation(self.origin,point,self.orientation))
 
         return rotated_list
     
@@ -925,7 +938,7 @@ class Hitbox:
 
         rotated_list = []
         for point in point_list:
-            rotated_list.append(utils.Utils.apply_rotation(self.origin,point,self.parent.orientation- (utils.radians(90))))
+            rotated_list.append(utils.Utils.apply_rotation(self.origin,point,self.orientation- (utils.radians(90))))
 
         return rotated_list
 

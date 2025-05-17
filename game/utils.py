@@ -100,7 +100,19 @@ class Utils:
         vy = sin(theta)*length
 
         return [vx,vy]
+    
+    def get_dimensions(point_a:tuple,point_b:tuple) -> tuple:
+        point_b2 = (point_a[0], point_b[1])
+        dimension_x = Utils.distance(point_a,point_b2)
+        dimension_y = Utils.distance(point_b, point_b2)
 
+        return (dimension_x,dimension_y)
+
+    def get_rectangle_center(point_a:tuple,point_b:tuple):
+        vector = Utils.get_vector(point_a,point_b)
+        center = Utils.translate(point_a, (vector[0]/2, vector[1]/2))
+
+        return center
 
 
 class Queue:
