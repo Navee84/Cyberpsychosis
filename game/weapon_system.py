@@ -6,13 +6,19 @@ class Inventory:
     def __init__(self, parent:world.Player | world.Enemy):
         self.parent = parent
         self.slots = [None]*4
-        self.slots[0] = Copperhead(self, 30, 25, 8, 20, 4, 1000)
+        self.slots[0] = Copperhead(self, 30, 25, 8, 20, 4, 700)
         self.active_slot = 0
 
 class Weapon:
     def __init__(self, parent:Inventory, magazine_capacity:int, magazines_number:int, fire_rate:int, damage:int, dispersion:int, shooting_range:int):
         self.parent = parent
 
+        if type(self.parent.parent) == world.Enemy:
+            self.sprite = utils.Utils.sprite_load("game/assets/textures/weapons/Copperhead_enemy.png")
+        else:
+            self.sprite = utils.Utils.sprite_load("game/assets/textures/weapons/Copperhead_player.png")
+
+        self.parent.parent.parent.add_to_batch(self,2)
         self.fire_sound_player = utils.SoundManager("game/assets/sounds/weapons/shoot")
         self.dry_fire_sound_player = utils.SoundManager("game/assets/sounds/weapons/dry fire")
         self.reload_sound_player = utils.SoundManager("game/assets/sounds/weapons/reload")
@@ -45,6 +51,8 @@ class Weapon:
             self.active_magazine = self.magazines.dequeue()
             self.reloading = False
             print("RELOADED")
+        
+        self.update_sprite()
 
     def reload(self):
 
@@ -67,10 +75,23 @@ class Weapon:
             self.firing_cooldown = round(90*(1/self.fire_rate))
 
         if self.active_magazine > 0 and self.firing_cooldown <= 0:
-            self.parent.parent.parent.instanciate_bullet(self.parent.parent.world_coords, self.parent.parent.orientation, 25, self.damage, self.shooting_range, utils.radians(randint(-self.dispersion,self.dispersion)))
+            self.parent.parent.parent.instanciate_bullet(utils.Utils.apply_rotation(self.parent.parent.world_coords,(self.parent.parent.world_coords[0] + (40* self.parent.parent.fov),self.parent.parent.world_coords[1] - (20 * self.parent.parent.fov)),self.parent.parent.orientation), -utils.radians(self.sprite.rotation), 25, self.damage, self.shooting_range, utils.radians(randint(-self.dispersion,self.dispersion)))
             self.firing_cooldown = round(45*(1/self.fire_rate))
             self.active_magazine -= 1
             self.fire_sound_player.play_sound()
+    
+    def update_sprite(self):
+        self.sprite.scale = self.parent.parent.fov
+        screen_pos = self.parent.parent.get_screen_pos()
+        rotated_screen_pos = utils.Utils.apply_rotation(screen_pos,(screen_pos[0] + (40* self.parent.parent.fov),screen_pos[1] - (20 * self.parent.parent.fov)),self.parent.parent.orientation)
+        self.sprite.x = rotated_screen_pos[0]
+        self.sprite.y = rotated_screen_pos[1]
+        
+        if type(self.parent.parent) == world.Player:
+            self.sprite.rotation = -utils.degrees(utils.Utils.get_angle(rotated_screen_pos, (self.parent.parent.parent.parent.rendering_engine._mouse_x,self.parent.parent.parent.parent.rendering_engine._mouse_y)))
+        else:
+            self.sprite.rotation = utils.degrees(-self.parent.parent.orientation)
+
 
 class Bullet(world.WorldObject):
     def __init__(self, parent, firing_position:tuple, direction:float, speed:float, damage:int, shooting_range:int, dispersion:float):
@@ -81,7 +102,7 @@ class Bullet(world.WorldObject):
         # updating  worldobject values :
 
         self.orientation = direction
-        direction_vector = utils.Utils.decompose_into_vector(50,self.orientation)
+        direction_vector = utils.Utils.decompose_into_vector(10,self.orientation)
         self.world_coords = [firing_position[0]+direction_vector[0],firing_position[1]+direction_vector[1]]
         self.transparent = True
 
@@ -101,7 +122,9 @@ class Bullet(world.WorldObject):
         
     def range_limiter(self):
         if utils.Utils.distance(self.firing_position,self.world_coords) > self.shooting_range:
-            self.suicide()
+            self.sprite.opacity -=40
+            if self.sprite.opacity <= 0:
+                self.suicide()
 
 
 

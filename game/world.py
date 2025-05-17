@@ -7,7 +7,7 @@ class World:
     def __init__(self,parent:Main):
         self.parent = parent
         self.music_manager = utils.MusicManager()
-        self.wave_sound_player = utils.SoundManager("game/assets/sounds/misc")
+        self.sound_effects_manager = utils.SoundManager("game/assets/sounds/misc")
         self.objects_list = []
         self.enemy_list = []
         self.bullet_list = []
@@ -17,9 +17,9 @@ class World:
         self.can_skip = False
         self.cahos = 0
         self.enemy_spawn_locations = (
-            ((860,-590), (475,-770)),
-            ((-740,-1100), (-430,-900)),
-            ((-850,1160),(-480,1400))
+            ((-925,1270), (-430,990)),
+            ((-790,-1255), (-415,-1520)),
+            ((-890,1345),(490,-1145))
         )
 
         # DEVELOPEMENT VALUES
@@ -30,8 +30,9 @@ class World:
         self.camera = Camera(self)
 
 
-        self.player = Player(self, "game/assets/textures/entity/default_texture.png", 1)
+        self.player = Player(self, "game/assets/textures/entity/player.png", 1)
         self.player.hide()
+
         
         self.instanciate_main_menu()
 
@@ -229,8 +230,8 @@ class World:
         self.environment.fixed = True
 
         self.player.show()
+        self.add_to_batch(self.player.inventory.slots[0],2)
         self.player.hitbox = Hitbox(self.player, "rectangle", (64,64))
-        self.player.hitbox.render = True
         self.player.world_coords = [350,150]
 
 
@@ -239,7 +240,7 @@ class World:
         self.skip_to_end_button = Button(self,(420, -260), (155,75),self.skip_to_end_button_sprite)
         # self.loading_screen = None
 
-        
+        self.sound_effects_manager.play_specific_sound("enter_game")
         self.game_state = "Game"
 
     def game(self):
@@ -257,13 +258,14 @@ class World:
 
         if self.cahos == 1:
             self.instanciate_enemy()
-            self.wave_sound_player.play_sound()
+            self.sound_effects_manager.play_specific_sound("enemy_wave")
             self.cahos += 15
-
+        
         elif len(self.enemy_list) == 0 and self.cahos > 10:
-            self.wave_sound_player.play_sound()
+            self.sound_effects_manager.play_specific_sound("enemy_wave")
             for i in range(self.cahos//10):
                 self.instanciate_enemy()
+        self.cahos = min(self.cahos, 300)
 
 
 
@@ -286,6 +288,7 @@ class World:
 
 
                 self.player.hide()
+                self.player.inventory.slots[0].sprite.batch = None
                 while len(self.objects_list) > 1:
                     if self.objects_list[-1] != self.player:
                         self.objects_list[-1].suicide()
@@ -351,7 +354,6 @@ class World:
     def instanciate_enemy(self):
         self.enemy = Enemy(self, "NCPD")
         self.enemy.hitbox = Hitbox(self.enemy, "rectangle", (64,64))
-        self.enemy.hitbox.render = False
         self.enemy.world_coords = self.get_enemy_spawn_location()
         self.cahos += 1
 
@@ -403,7 +405,6 @@ class World:
     
     def get_enemy_spawn_location(self) -> list:
         area = self.enemy_spawn_locations[randint(0,len(self.enemy_spawn_locations)-1)]
-        print(area)
 
         location_x = randint(min(area[0][0],area[1][0]),max(area[0][0],area[1][0]))
         location_y = randint(min(area[0][1],area[1][1]),max(area[0][1],area[1][1]))
@@ -431,9 +432,9 @@ class World:
             self.environment.sprite.batch = None
             self.environment = None
 
-        if hasattr(self, 'bullet_object') and self.bullet_object is object:
-            self.bullet_object.sprite.batch = None
-            self.bullet_object = None
+        if hasattr(self, 'bullet_object') and object.sprite.batch != None:
+            object.sprite.batch = None
+            object = None
         gc.collect()
 
 
@@ -532,6 +533,7 @@ class Button:
         if self.click_phase == 2:
             self.click_phase = 0
             print("CLICKED")
+            self.parent.sound_effects_manager.play_specific_sound("button_click")
             return True
         return False
         
@@ -590,6 +592,10 @@ class WorldObject:
         self.sprite.y = screen_pos[1]
     
     def update_hitbox_position(self):
+        if type(self) == Environment:
+            for hitbox in self.hitbox_list:
+                hitbox.update()
+
         if not self.hitbox == None:
             self.hitbox.update()
 
@@ -626,6 +632,7 @@ class Entity:
 
     def move_right(self):
         self.speed[0] = round(min(self.max_speed,self.speed[0]+self.acceleration),2)
+
 
 
 class Player(WorldObject,Entity):
@@ -687,10 +694,9 @@ class Player(WorldObject,Entity):
     
     def dash(self):
         if self.dash_cooldown <= 0:
-            self.speed[0] *= 1.5
-            self.speed[1] *= 1.5
+            print("DASH")
 
-        self.dash_cooldown = 45
+            self.dash_cooldown = 45
 
 class Enemy(WorldObject, Entity):
     def __init__(self, parent:World, preset:str):
@@ -703,7 +709,7 @@ class Enemy(WorldObject, Entity):
         
         match preset:
             case "NCPD":
-                texture = "game/assets/textures/entity/default_texture.png"
+                texture = "game/assets/textures/entity/ncpd.png"
                 self.brain_phase = 0
                 self.brain_speed = 10
             case "MAXTAC":
@@ -723,6 +729,8 @@ class Enemy(WorldObject, Entity):
         self.distance_to_player = utils.Utils.distance(self.world_coords,self.parent.player.world_coords)
 
         self.inventory = Inventory(self)
+
+        self.brain_activation_number = randint(0,self.brain_speed)
 
         self.parent.add_to_enemy_list(self)
 
@@ -744,19 +752,19 @@ class Enemy(WorldObject, Entity):
                 weapon.tick()
 
 
-        if self.brain_phase == 0:
+        if self.brain_phase == self.brain_activation_number:
             self.face_player()
             if self.inventory.slots[self.inventory.active_slot].active_magazine <= 0:
                 self.inventory.slots[self.inventory.active_slot].reload()
 
             self.distance_to_player = utils.Utils.distance(self.world_coords,self.parent.player.world_coords)
-            if self.distance_to_player < (self.inventory.slots[self.inventory.active_slot].shooting_range / 2) - 20:
+            if self.distance_to_player < (self.inventory.slots[self.inventory.active_slot].shooting_range / 1.5) - 20:
                 self.shoot()
             
-        if self.distance_to_player >= (self.inventory.slots[self.inventory.active_slot].shooting_range / 2) - 25 :
+        if self.distance_to_player >= (self.inventory.slots[self.inventory.active_slot].shooting_range / 1.5) - 25 :
             self.update_route("follow")
 
-        if self.distance_to_player <= (self.inventory.slots[self.inventory.active_slot].shooting_range / 3) or self.inventory.slots[self.inventory.active_slot].active_magazine <= 0:
+        if self.distance_to_player <= (self.inventory.slots[self.inventory.active_slot].shooting_range / 2.5) or self.inventory.slots[self.inventory.active_slot].active_magazine <= 0:
             self.update_route("flee")
         
         self.brain_phase = (self.brain_phase + 1)%self.brain_speed
@@ -809,7 +817,16 @@ class Enemy(WorldObject, Entity):
 class Environment(WorldObject): # UNIQUE OBJECT, DEFiNE THE BACKGROUND ENVIRONMENT
     def __init__(self, parent, texture:str, group:int):
         super().__init__(parent, texture, group, True)
+        self.hitbox_list = []
 
+        self.hitbox_values=[
+            ("rectangle", (200,200),(-200,-200)),
+            ("rectangle", (100,100),(0,0))
+        ]
+
+        for elem in self.hitbox_values:
+            print(elem[2])
+            self.hitbox_list.append(Hitbox(self,elem[0],elem[1],elem[2]))
 
 class Camera:
     def __init__(self, parent):
@@ -821,8 +838,15 @@ class Camera:
 
 
 class Hitbox:
-    def __init__(self, parent:WorldObject, preset:str, dimensions:tuple):
+    def __init__(self, parent:WorldObject, preset:str, dimensions:tuple, *origin):
         self.parent = parent
+        self.default_origin = False
+
+        if not origin:
+            self.default_origin = True
+        else:
+            self.origin = origin[0]
+            print(self.origin)
 
         # Vérifie que le preset entré en argument est dans la liste des presets disponibles
         allowed_presets = ("rectangle","triangle","circle","hexagon")
@@ -831,7 +855,7 @@ class Hitbox:
         
         self.dimensions = dimensions
         self.preset = preset
-        self.render = False
+        self.render = True
         self.is_colliding = False
 
         self.size = 1
@@ -844,6 +868,9 @@ class Hitbox:
         '''
         Updates hitbox coordinates
         '''
+        if self.default_origin:
+            self.origin = self.parent.world_coords
+            
         color = (75,100,255)
         if self.is_colliding:
             color = (255,100,75)
@@ -870,17 +897,17 @@ class Hitbox:
         '''
         Returns rectangle shaped coordinates for the hitbox
         '''
-        top_left = (self.parent.world_coords[0] - width//2 , self.parent.world_coords[1] + height//2)
-        top_right = (self.parent.world_coords[0] + width//2, self.parent.world_coords[1] + height//2)
+        top_left = (self.origin[0] - width//2 , self.origin[1] + height//2)
+        top_right = (self.origin[0] + width//2, self.origin[1] + height//2)
 
-        bottom_left = (self.parent.world_coords[0] - width//2 , self.parent.world_coords[1] - height//2)
-        bottom_right = (self.parent.world_coords[0] + width//2, self.parent.world_coords[1] - height//2)
+        bottom_left = (self.origin[0] - width//2 , self.origin[1] - height//2)
+        bottom_right = (self.origin[0] + width//2, self.origin[1] - height//2)
 
         point_list = [top_left, top_right,bottom_right, bottom_left]
 
         rotated_list = []
         for point in point_list:
-            rotated_list.append(utils.Utils.apply_rotation(self.parent.world_coords,point,self.parent.orientation))
+            rotated_list.append(utils.Utils.apply_rotation(self.origin,point,self.parent.orientation))
 
         return rotated_list
     
@@ -888,9 +915,9 @@ class Hitbox:
         '''
         Returns triangle shaped coordinates for the hitbox
         '''
-        top = (self.parent.world_coords[0], self.parent.world_coords[1] + int((2/3)*((3**0.5)*(width//2))) - down_offset)
+        top = (self.origin[0], self.origin[1] + int((2/3)*((3**0.5)*(width//2))) - down_offset)
 
-        bottom_middle = (self.parent.world_coords[0],self.parent.world_coords[1] - int((1/3)*((3**0.5)*(width//2))) - down_offset)
+        bottom_middle = (self.origin[0],self.origin[1] - int((1/3)*((3**0.5)*(width//2))) - down_offset)
         bottom_left = (bottom_middle[0] - width//2, bottom_middle[1])
         bottom_right = (bottom_middle[0] + width//2, bottom_middle[1])
 
@@ -898,15 +925,13 @@ class Hitbox:
 
         rotated_list = []
         for point in point_list:
-            rotated_list.append(utils.Utils.apply_rotation(self.parent.world_coords,point,self.parent.orientation- (utils.radians(90))))
+            rotated_list.append(utils.Utils.apply_rotation(self.origin,point,self.parent.orientation- (utils.radians(90))))
 
         return rotated_list
 
     def preset_circle(self):
         pass
     
-    def preset_hexagon(self):
-        pass
 
     def dump(self):
         print(f"Preset : {self.preset}")
@@ -928,7 +953,8 @@ class PhysicsEngine:
         Output : same object but with modified world_pos values
         '''
         # UPDATING POSITIONS
-
+        
+        # Environment will never go through the physics engin as active
         if active_object.fixed:
             return None
 
@@ -949,39 +975,45 @@ class PhysicsEngine:
         # CHECKING COLLISION
 
         for object in self.parent.objects_list:
-            if object.hitbox != None:
+            if type(object) == Environment:
+                for hitbox in object.hitbox_list:
+                    if max(hitbox.dimensions[0], hitbox.dimensions[1])*1.5 > utils.Utils.distance(active_object.world_coords,hitbox.origin):
+                        candidate_queue.enqueue(hitbox)
+
+            elif object.hitbox != None:
                 if object != active_object:
                     if max(object.hitbox.dimensions[0], object.hitbox.dimensions[1])*1.5 > utils.Utils.distance(active_object.world_coords,object.world_coords):
-                        candidate_queue.enqueue(object)
+                        candidate_queue.enqueue(object.hitbox)
 
         while not candidate_queue.is_empty():
-            tested_object = candidate_queue.dequeue()
+            tested_hitbox = candidate_queue.dequeue()
 
             collision_result = (False,None)
-            if type(tested_object) != Bullet: # Avoid useless calculations between bullets
-                collision_result = self.is_colliding(active_object.hitbox,tested_object.hitbox)
+            if type(tested_hitbox.parent) != Bullet: # Avoid useless calculations between bullets
+                collision_result = self.is_colliding(active_object.hitbox,tested_hitbox)
 
         # RESOLVING COLLISION
             if collision_result[0]:
-                if active_object.transparent == False or tested_object.transparent == False:
-
+                if active_object.transparent == False or tested_hitbox.parent.transparent == False:
 
 
                     active_object.hitbox.is_colliding = True
-                    tested_object.hitbox.is_colliding = True
+                    tested_hitbox.is_colliding = True
                     if active_object.fixed == True:
                         return None
         
                     if type(active_object) == Bullet:
-                        tested_object.health -= active_object.damage
+                        if type(tested_hitbox.parent) != Environment:
+                            tested_hitbox.parent.health -= active_object.damage
                         active_object.suicide()
-
-                    active_object.world_coords = (utils.Utils.translate(active_object.world_coords, collision_result[1]))
+                        return None
+                    else:
+                        active_object.world_coords = (utils.Utils.translate(active_object.world_coords, collision_result[1]))
 
 
                 else:
                     active_object.hitbox.is_colliding = False
-                    tested_object.hitbox.is_colliding = False
+                    tested_hitbox.is_colliding = False
         
 
 
@@ -1024,7 +1056,7 @@ class PhysicsEngine:
                 # Check normal direction and invert it if needed
                 retained_vector = (round(normal[0]*minimum_depth_value), round(normal[1]*minimum_depth_value))
 
-                vector_a_b = utils.Utils.get_vector(hitbox1.parent.world_coords, hitbox2.parent.world_coords)
+                vector_a_b = utils.Utils.get_vector(hitbox1.origin, hitbox2.origin)
                 scalar_coefficient = self.get_scalar_coefficient(normal,vector_a_b)
                 if scalar_coefficient > 0:
                     retained_vector = (-1*retained_vector[0], -1*retained_vector[1])

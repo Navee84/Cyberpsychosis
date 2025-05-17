@@ -27,7 +27,10 @@ class RenderingEngine(pyglet.window.Window):
 
         self.debug_render_queue = utils.Queue()
 
-
+        #WINDOW EVENTS
+        @self.event
+        def on_deactivate():
+            self.parent.input_manager.input_list = []
         # GAME EVENTS
         @self.event
         def on_key_release(symbol, modifiers):

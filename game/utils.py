@@ -2,7 +2,7 @@ import pyglet
 import pyglet.window.mouse
 from math import cos, sin, atan, degrees, radians, atan2
 import os
-from random import randint
+from random import randint, choice
 
 class Utils:
     def console_prefix(state):
@@ -64,7 +64,7 @@ class Utils:
         return max
     
     def distance(point_a:list,point_b:list):
-        return ((point_a[0]-point_b[0])**2+(point_a[1]-point_b[1])**2)**(1/2)
+        return ((point_b[0]-point_a[0])**2+(point_b[1]-point_a[1])**2)**(1/2)
     
     def apply_rotation(origin:tuple,point:tuple,theta) -> tuple:
         origin_vector = origin
@@ -142,18 +142,25 @@ class SoundManager():
     def __init__(self, sound_pack_path:str):
         super().__init__()
 
-        self.sound_list = []
+        self.sound_dict = {}
 
         for sound in os.listdir(sound_pack_path):
             source = pyglet.media.StaticSource(pyglet.media.load(sound_pack_path+"/"+sound))
 
-            # name = sound.lower()
-            # name = name.replace(" ","_")
-            # name = name[:len(sound)-4]
+            # shaping key name
+            name = sound.lower()
+            name = name.replace(" ","_")
+            name = name[:len(sound)-4]
 
-            self.sound_list.append(source)
+            self.sound_dict[name] = source
 
     def play_sound(self):
-        self.sound_list[randint(0,len(self.sound_list)-1)].play()
+        # self.sound_dict[randint(0,len(self.sound_dict.keys())-1)].play()
+        choice(list(self.sound_dict.values())).play()
+    
+    def play_specific_sound(self,sound_id:str):
+        self.sound_dict[sound_id].play()
 
-        
+class AssetManager:
+    def __init__(self):
+        musics_list = os.listdir()
