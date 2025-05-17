@@ -2,6 +2,7 @@ import utils
 import world
 from random import randint
 
+
 class Inventory:
     def __init__(self, parent:world.Player | world.Enemy):
         self.parent = parent
@@ -9,10 +10,16 @@ class Inventory:
         self.slots[0] = Copperhead(self, 30, 25, 8, 20, 4, 700)
         self.active_slot = 0
 
+
+
 class Weapon:
+    '''
+    Base class for all weapons
+    '''
     def __init__(self, parent:Inventory, magazine_capacity:int, magazines_number:int, fire_rate:int, damage:int, dispersion:int, shooting_range:int):
         self.parent = parent
 
+        # Sprite caracteristics
         if type(self.parent.parent) == world.Enemy:
             self.sprite = utils.Utils.sprite_load("game/assets/textures/weapons/Copperhead_enemy.png")
         else:
@@ -42,7 +49,10 @@ class Weapon:
         self.reloading = False
 
 
-    def tick(self):
+    def tick(self) -> None:
+        '''
+        Executed each frame for the player, allows the weapons to function correctly
+        '''
         self.reload_input_cooldown -= 1
         self.firing_cooldown -= 1
         self.reloading_time -= 1
@@ -54,8 +64,11 @@ class Weapon:
         
         self.update_sprite()
 
-    def reload(self):
 
+    def reload(self) -> None:
+        '''
+        Self explanatory
+        '''
         if not self.magazines.is_empty():
             if self.reload_input_cooldown <= 0 :
                 self.reloading = True
@@ -69,7 +82,12 @@ class Weapon:
         else:
             print("NOT ENOUGH MAGAZINES")
     
-    def fire(self):
+
+    def fire(self) -> None:
+        '''
+        Self explanatory
+        Instanciate a Bullet object in the world
+        '''
         if self.active_magazine <= 0 and self.firing_cooldown <= 0 and self.reloading == False:
             self.dry_fire_sound_player.play_sound()
             self.firing_cooldown = round(90*(1/self.fire_rate))
@@ -80,7 +98,8 @@ class Weapon:
             self.active_magazine -= 1
             self.fire_sound_player.play_sound()
     
-    def update_sprite(self):
+
+    def update_sprite(self) -> None:
         self.sprite.scale = self.parent.parent.fov
         screen_pos = self.parent.parent.get_screen_pos()
         rotated_screen_pos = utils.Utils.apply_rotation(screen_pos,(screen_pos[0] + (40* self.parent.parent.fov),screen_pos[1] - (20 * self.parent.parent.fov)),self.parent.parent.orientation)
@@ -93,6 +112,7 @@ class Weapon:
             self.sprite.rotation = utils.degrees(-self.parent.parent.orientation)
 
 
+
 class Bullet(world.WorldObject):
     def __init__(self, parent, firing_position:tuple, direction:float, speed:float, damage:int, shooting_range:int, dispersion:float):
         super().__init__(parent, "game/assets/textures/weapons/bullet.png", 1, False)
@@ -100,7 +120,6 @@ class Bullet(world.WorldObject):
         self.shooting_range = shooting_range
 
         # updating  worldobject values :
-
         self.orientation = direction
         direction_vector = utils.Utils.decompose_into_vector(10,self.orientation)
         self.world_coords = [firing_position[0]+direction_vector[0],firing_position[1]+direction_vector[1]]
@@ -120,7 +139,11 @@ class Bullet(world.WorldObject):
 
         self.parent.add_bullet_to_list(self)
         
-    def range_limiter(self):
+
+    def range_limiter(self) -> None:
+        '''
+        Prevent the bullet from flying indefinetly
+        '''
         if utils.Utils.distance(self.firing_position,self.world_coords) > self.shooting_range:
             self.sprite.opacity -=40
             if self.sprite.opacity <= 0:

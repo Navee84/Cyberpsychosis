@@ -7,16 +7,16 @@ from main import *
 
 class RenderingEngine(pyglet.window.Window):
     def __init__(self, parent:Main):
-        super().__init__(caption="prototype window", fullscreen = False)
+        super().__init__(caption="Cyberpsychosis", fullscreen = True)
 
         cursor_image = pyglet.image.load("game/assets/textures/cursor/arrow.png")
         cursor = pyglet.window.ImageMouseCursor(cursor_image, 3, 21)
-        #self.set_exclusive_mouse(True)
+
         self.set_mouse_cursor(cursor)
         self.set_mouse_visible(True)
         self.parent = parent
         self.window_center = (self.width // 2, self.height // 2)
-        self.fps_display = pyglet.window.FPSDisplay(self) # ONLY FOR DEBUG AND DEVELOPMENT
+        # self.fps_display = pyglet.window.FPSDisplay(self) # ONLY FOR DEBUG AND DEVELOPMENT
 
         self.batch = pyglet.graphics.Batch()
         self.batch_layer_background = pyglet.graphics.Group(order=0)
@@ -31,6 +31,7 @@ class RenderingEngine(pyglet.window.Window):
         @self.event
         def on_deactivate():
             self.parent.input_manager.input_list = []
+
         # GAME EVENTS
         @self.event
         def on_key_release(symbol, modifiers):
@@ -57,12 +58,12 @@ class RenderingEngine(pyglet.window.Window):
             self.batch.draw()
             self.render_debug(self.debug_render_queue)
             self.parent.input_manager.execute()
-            self.fps_display.draw() # ONLY FOR DEBUG AND DEVELOPMENT
+            # self.fps_display.draw() # ONLY FOR DEBUG AND DEVELOPMENT
 
 
     # METHODS
 
-    def render_debug(self,queue:utils.Queue):
+    def render_debug(self,queue:utils.Queue) -> None:
         while not queue.is_empty():
             queue.dequeue().draw()
 
